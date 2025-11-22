@@ -32,7 +32,7 @@ const TELEGRAM_CONFIG = {
 // Конфигурация города
 const cityConfig = {
     name: 'Пермь',
-    code: 'perm' // ← Важно для определения кому слать
+    code: 'perm'
 };
 
 // Кэш DOM элементов
@@ -150,7 +150,7 @@ async function sendToTelegram(cityCode, formData) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 chat_id: TELEGRAM_CONFIG.adminChatId,
-                text: `👑 ${message}` // 👑 - метка для админа
+                text: `👑 ${message}`
             })
         });
 
@@ -166,7 +166,8 @@ async function sendToTelegram(cityCode, formData) {
             });
         }
 
-             if (window.YandexMetrika) {
+        // 3. Отправляем событие в Яндекс.Метрику
+        if (window.YandexMetrika) {
             window.YandexMetrika.trackLead(
                 formData.city.name,
                 formData.problem,
@@ -180,7 +181,87 @@ async function sendToTelegram(cityCode, formData) {
         
     } catch (error) {
         console.error('❌ Ошибка отправки:', error);
+        
+        // Отслеживаем ошибки
+        if (window.YandexMetrika) {
+            window.YandexMetrika.reachGoal('lead_error');
+        }
+        
         return false;
+    }
+}
+
+// Глобальная функция открытия модального окна
+function openMasterModal() {
+    const modal = document.getElementById('masterModal');
+    if (!modal) {
+        console.error('Modal element not found');
+        return;
+    }
+
+    const form = document.getElementById('masterForm');
+    const agreementCheckbox = document.getElementById('userAgreement');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Показываем модалку
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Сброс формы
+    if (form) form.reset();
+    
+    // Обновляем состояние кнопки
+    if (submitBtn && agreementCheckbox) {
+        submitBtn.disabled = !agreementCheckbox.checked;
+    }
+    
+    // Фокус на первое поле
+    setTimeout(() => {
+        const userNameInput = document.getElementById('userName');
+        if (userNameInput) userNameInput.focus();
+    }, 100);
+    
+    // Отслеживание в Яндекс.Метрике
+    if (window.YandexMetrika) {
+        window.YandexMetrika.reachGoal('callback_click', {
+            source: 'master_call_button',
+            location: 'contacts_section'
+        });
+    }
+
+    console.log('✅ Модальное окно открыто');
+}
+
+// Функция закрытия модального окна
+function closeMasterModal() {
+    const modal = document.getElementById('masterModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+// Отслеживание взаимодействий для аналитики
+function trackUserInteraction(action, data = {}) {
+    console.log('📊 User action:', action, data);
+    
+    // Яндекс.Метрика через модуль
+    if (window.YandexMetrika) {
+        const goalsMap = {
+            'callback_button_clicked': 'callback_click',
+            'navigation_click': 'navigation',
+            'stage_changed': 'stage_progress',
+            'advantage_clicked': 'advantage_view',
+            'contact_menu_item_clicked': 'contact_click',
+            'floating_contact_toggled': 'float_contact',
+            'logo_clicked': 'logo_click',
+            'video_play_started': 'video_play',
+            'master_call_button_clicked': 'callback_click'
+        };
+        
+        if (goalsMap[action]) {
+            window.YandexMetrika.reachGoal(goalsMap[action], data);
+        }
     }
 }
 
@@ -289,16 +370,31 @@ function initializeNavigation() {
     });
 }
 
-// Инициализация обратных вызовов (теперь используется модальное окно)
+// Инициализация обратных вызовов
 function initializeCallbacks() {
+    // Кнопка в шапке
     const callbackBtn = domCache.get('.callback-btn');
-    
     if (callbackBtn) {
         callbackBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            trackUserInteraction('callback_button_clicked');
+            e.stopPropagation();
+            openMasterModal();
+            trackUserInteraction('callback_button_clicked', { location: 'header' });
         });
     }
+    
+    // Новая кнопка в секции контактов
+    const masterCallBtn = document.querySelector('.master-call-button');
+    if (masterCallBtn) {
+        masterCallBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openMasterModal();
+            trackUserInteraction('master_call_button_clicked', { location: 'contacts_section' });
+        });
+    }
+
+    console.log('✅ Callbacks initialized');
 }
 
 // Оптимизация для мобильных устройств
@@ -592,9 +688,8 @@ function initializeMasterModal() {
         return;
     }
 
-    const openButtons = document.querySelectorAll('.callback-btn');
-    const closeButton = modal.querySelector('.modal-close');
     const form = document.getElementById('masterForm');
+    const closeButton = modal.querySelector('.modal-close');
     const overlay = modal.querySelector('.modal-overlay');
     const agreementCheckbox = document.getElementById('userAgreement');
     const submitBtn = document.getElementById('submitBtn');
@@ -610,53 +705,20 @@ function initializeMasterModal() {
         cityDisplay.textContent = cityConfig.name;
     }
 
-    // Открытие модального окна
-    function openModal() {
-        setTimeout(() => {
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            
-            // Сброс формы
-            form.reset();
-            updateSubmitButton();
-            
-            // Фокус на первое поле
-            setTimeout(() => {
-                const userNameInput = document.getElementById('userName');
-                if (userNameInput) userNameInput.focus();
-            }, 100);
-        }, 10);
-    }
-
-    // Закрытие модального окна
-    function closeModal() {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
     // Обновление состояния кнопки отправки
     function updateSubmitButton() {
         const isFormValid = form.checkValidity() && agreementCheckbox.checked;
         submitBtn.disabled = !isFormValid;
     }
 
-    // Обработчики открытия
-    openButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openModal();
-        });
-    });
-
     // Обработчики закрытия
-    closeButton.addEventListener('click', closeModal);
-    overlay.addEventListener('click', closeModal);
+    closeButton.addEventListener('click', closeMasterModal);
+    overlay.addEventListener('click', closeMasterModal);
 
     // Закрытие по ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
-            closeModal();
+            closeMasterModal();
         }
     });
 
@@ -695,7 +757,7 @@ function initializeMasterModal() {
             
             // Закрываем модалку через 2 секунды
             setTimeout(() => {
-                closeModal();
+                closeMasterModal();
             }, 2000);
         } else {
             // Показываем ошибку
@@ -705,7 +767,7 @@ function initializeMasterModal() {
 
     // Функция успешной отправки
     function showSuccessMessage() {
-        closeModal();
+        closeMasterModal();
         
         // Показываем окно благодарности через небольшую задержку
         setTimeout(() => {
@@ -743,6 +805,7 @@ function initializeMasterModal() {
 
     // Инициализация кнопки при загрузке
     updateSubmitButton();
+    console.log('✅ Master modal initialized');
 }
 
 // Функция открытия окна благодарности
@@ -834,31 +897,13 @@ function updateTimerDisplay(element, seconds) {
         `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// Отслеживание взаимодействий для аналитики
-function trackUserInteraction(action, data = {}) {
-    console.log('📊 User action:', action, data);
-
-     if (window.YandexMetrika) {
-        const goalsMap = {
-            'callback_button_clicked': 'callback_click',
-            'navigation_click': 'navigation',
-            'stage_changed': 'stage_progress',
-            'advantage_clicked': 'advantage_view',
-            'contact_menu_item_clicked': 'contact_click',
-            'floating_contact_toggled': 'float_contact',
-            'logo_clicked': 'logo_click',
-            'video_play_started': 'video_play'
-        };
-        
-        if (goalsMap[action]) {
-            window.YandexMetrika.reachGoal(goalsMap[action], data);
-        }
-    }
-}  
-
 // Очистка ресурсов при выгрузке страницы
 window.addEventListener('beforeunload', () => {
     // Очищаем кэш
     domCache.clear();
     console.log('🧹 Ресурсы очищены');
 });
+
+// Делаем функции глобальными для прямого вызова из HTML
+window.openMasterModal = openMasterModal;
+window.closeMasterModal = closeMasterModal;
