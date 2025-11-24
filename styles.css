@@ -3197,3 +3197,36 @@ body {
         font-size: 0.7rem;
     }
 }
+
+
+/* Стили для подсказки номера телефона */
+.phone-hint {
+    color: #ff4444;
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+    margin-top: 5px;
+    text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
+    animation: hint-pulse 2s ease-in-out infinite;
+    display: none;
+}
+
+@keyframes hint-pulse {
+    0%, 100% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Стили для валидного номера */
+.form-input:valid {
+    border-color: var(--neon-green) !important;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3) !important;
+}
+
+/* Стили для невалидного номера */
+.form-input:invalid {
+    border-color: #ff4444 !important;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.3) !important;
+}
