@@ -191,6 +191,119 @@ async function sendToTelegram(cityCode, formData) {
     }
 }
 
+// Функция валидации номера телефона
+function validatePhoneNumber(phone) {
+    const phoneInput = document.getElementById('userPhone');
+    
+    if (!phoneInput) return false;
+    
+    // Убираем все нецифровые символы кроме +
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Проверяем что номер российский и имеет 11 цифр (включая +7)
+    const isValid = cleanPhone.length === 11 && cleanPhone.startsWith('7');
+    
+    if (phone && !isValid) {
+        phoneInput.style.borderColor = '#ff4444';
+        phoneInput.style.boxShadow = '0 0 10px rgba(255, 68, 68, 0.5)';
+        
+        // Показываем подсказку
+        showPhoneHint('Введите полный номер телефона (11 цифр)');
+        return false;
+    } else if (isValid) {
+        phoneInput.style.borderColor = 'var(--neon-green)';
+        phoneInput.style.boxShadow = '0 0 10px rgba(0, 255, 0, 0.5)';
+        hidePhoneHint();
+        return true;
+    } else {
+        phoneInput.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        phoneInput.style.boxShadow = 'none';
+        hidePhoneHint();
+        return false;
+    }
+}
+
+// Функция показа подсказки
+function showPhoneHint(message) {
+    let hintElement = document.getElementById('phoneHint');
+    
+    if (!hintElement) {
+        hintElement = document.createElement('div');
+        hintElement.id = 'phoneHint';
+        hintElement.className = 'phone-hint';
+        
+        const phoneGroup = document.querySelector('.form-group:has(#userPhone)');
+        if (phoneGroup) {
+            phoneGroup.appendChild(hintElement);
+        }
+    }
+    
+    hintElement.textContent = message;
+    hintElement.style.display = 'block';
+}
+
+// Функция скрытия подсказки
+function hidePhoneHint() {
+    const hintElement = document.getElementById('phoneHint');
+    if (hintElement) {
+        hintElement.style.display = 'none';
+    }
+}
+
+// Функция проверки всей формы
+function isFormValid() {
+    const form = document.getElementById('masterForm');
+    const agreementCheckbox = document.getElementById('userAgreement');
+    const phoneInput = document.getElementById('userPhone');
+    const nameInput = document.getElementById('userName');
+    const problemSelect = document.getElementById('userProblem');
+    
+    if (!form || !agreementCheckbox || !phoneInput || !nameInput || !problemSelect) {
+        return false;
+    }
+    
+    // Проверяем согласие
+    if (!agreementCheckbox.checked) {
+        return false;
+    }
+    
+    // Проверяем имя
+    if (!nameInput.value.trim()) {
+        return false;
+    }
+    
+    // Проверяем проблему
+    if (!problemSelect.value) {
+        return false;
+    }
+    
+    // Проверяем номер телефона
+    const cleanPhone = phoneInput.value.replace(/\D/g, '');
+    const isPhoneValid = cleanPhone.length === 11 && cleanPhone.startsWith('7');
+    
+    return isPhoneValid;
+}
+
+// Функция обновления состояния кнопки отправки
+function updateSubmitButton() {
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        const isValid = isFormValid();
+        submitBtn.disabled = !isValid;
+        
+        // Добавляем подсказку на кнопку
+        if (!isValid) {
+            submitBtn.title = 'Заполните все поля правильно';
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+        } else {
+            submitBtn.title = 'Отправить заявку';
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+    }
+}
+
 // Глобальная функция открытия модального окна
 function openMasterModal() {
     const modal = document.getElementById('masterModal');
@@ -200,8 +313,6 @@ function openMasterModal() {
     }
 
     const form = document.getElementById('masterForm');
-    const agreementCheckbox = document.getElementById('userAgreement');
-    const submitBtn = document.getElementById('submitBtn');
 
     // Показываем модалку
     modal.classList.add('active');
@@ -210,10 +321,17 @@ function openMasterModal() {
     // Сброс формы
     if (form) form.reset();
     
-    // Обновляем состояние кнопки
-    if (submitBtn && agreementCheckbox) {
-        submitBtn.disabled = !agreementCheckbox.checked;
+    // Сбрасываем стили полей
+    const phoneInput = document.getElementById('userPhone');
+    if (phoneInput) {
+        phoneInput.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        phoneInput.style.boxShadow = 'none';
     }
+    
+    hidePhoneHint();
+    
+    // Обновляем состояние кнопки
+    updateSubmitButton();
     
     // Фокус на первое поле
     setTimeout(() => {
@@ -610,7 +728,7 @@ function initializeWorkStages() {
         2: "В удобное для Вас время", 
         3: "Выявление неисправности и согласование стоимости",
         4: "Ремонт и проверка качества проведенных работ",
-        5: "В удобную для Вас дату и время"
+        5: "В удобную для Вас дату и время с Гарантией до 1 года"
     };
     
     let currentStage = 1;
@@ -705,12 +823,6 @@ function initializeMasterModal() {
         cityDisplay.textContent = cityConfig.name;
     }
 
-    // Обновление состояния кнопки отправки
-    function updateSubmitButton() {
-        const isFormValid = form.checkValidity() && agreementCheckbox.checked;
-        submitBtn.disabled = !isFormValid;
-    }
-
     // Обработчики закрытия
     closeButton.addEventListener('click', closeMasterModal);
     overlay.addEventListener('click', closeMasterModal);
@@ -726,14 +838,68 @@ function initializeMasterModal() {
     form.addEventListener('input', updateSubmitButton);
     agreementCheckbox.addEventListener('change', updateSubmitButton);
 
+    // Маска и валидация для телефона
+    const phoneInput = document.getElementById('userPhone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.startsWith('7') || value.startsWith('8')) {
+                value = value.substring(1);
+            }
+            
+            if (value.length > 0) {
+                value = '+7 (' + value;
+                
+                if (value.length > 7) {
+                    value = value.substring(0, 7) + ') ' + value.substring(7);
+                }
+                if (value.length > 12) {
+                    value = value.substring(0, 12) + '-' + value.substring(12);
+                }
+                if (value.length > 15) {
+                    value = value.substring(0, 15) + '-' + value.substring(15, 17);
+                }
+            }
+            
+            e.target.value = value;
+            
+            // Валидация номера в реальном времени
+            validatePhoneNumber(value);
+            updateSubmitButton();
+        });
+        
+        // Добавляем проверку при потере фокуса
+        phoneInput.addEventListener('blur', function() {
+            validatePhoneNumber(this.value);
+            updateSubmitButton();
+        });
+    }
+
     // Обработка отправки формы
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        if (!form.checkValidity() || !agreementCheckbox.checked) {
+        // Проверяем валидность формы
+        if (!isFormValid()) {
             // Анимация ошибки
             form.classList.add('form-error');
             setTimeout(() => form.classList.remove('form-error'), 1000);
+            
+            // Подсвечиваем проблемные поля
+            const nameInput = document.getElementById('userName');
+            const problemSelect = document.getElementById('userProblem');
+            
+            if (!nameInput.value.trim()) {
+                nameInput.style.borderColor = '#ff4444';
+                nameInput.style.boxShadow = '0 0 10px rgba(255, 68, 68, 0.5)';
+            }
+            
+            if (!problemSelect.value) {
+                problemSelect.style.borderColor = '#ff4444';
+                problemSelect.style.boxShadow = '0 0 10px rgba(255, 68, 68, 0.5)';
+            }
+            
             return;
         }
 
@@ -773,34 +939,6 @@ function initializeMasterModal() {
         setTimeout(() => {
             openSuccessModal();
         }, 500);
-    }
-
-    // Маска для телефона
-    const phoneInput = document.getElementById('userPhone');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            
-            if (value.startsWith('7') || value.startsWith('8')) {
-                value = value.substring(1);
-            }
-            
-            if (value.length > 0) {
-                value = '+7 (' + value;
-                
-                if (value.length > 7) {
-                    value = value.substring(0, 7) + ') ' + value.substring(7);
-                }
-                if (value.length > 12) {
-                    value = value.substring(0, 12) + '-' + value.substring(12);
-                }
-                if (value.length > 15) {
-                    value = value.substring(0, 15) + '-' + value.substring(15, 17);
-                }
-            }
-            
-            e.target.value = value;
-        });
     }
 
     // Инициализация кнопки при загрузке
