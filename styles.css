@@ -18,9 +18,8 @@
 }
 
 body {
-    background-color: var(--darker-bg);
+    background-color: #0A0015; /* совпадает с верхом градиента неба в background.js */
     color: var(--text-white);
-    /* ОПТИМИЗАЦИЯ: Share Tech Mono одинаково выглядит на Android, iOS, Windows */
     font-family: 'JetBrains Mono', 'Courier New', monospace;
     line-height: 1.6;
 }
@@ -41,8 +40,10 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    background-color: var(--dark-bg);
-    border-bottom: 1px solid #333;
+    background: rgba(20, 16, 40, 0.55); /* полупрозрачный фиолетово-тёмный — чуть светлее основных блоков */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 0, 255, 0.2);
     flex-wrap: wrap;
 }
 
@@ -243,124 +244,139 @@ body {
 /* Контейнер для действий в шапке */
 .header-actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    min-width: 200px;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;                  /* элементы вплотную внутри пилюли */
+    position: relative;
+    z-index: 12;
 }
 
-/* Общие стили для всех элементов */
+/* Общая пилюля — как у .nav */
+.header-actions {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    padding: 8px 25px;
+    border-radius: 50px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+/* Пульсирующая граница — как у .nav::before */
+.header-actions::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px; bottom: -1px;
+    background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink), var(--neon-cyan));
+    border-radius: 50px;
+    z-index: -1;
+    opacity: 0.3;
+    filter: blur(5px);
+    animation: border-pulse 3s ease-in-out infinite;
+}
+
 .action-item {
-    width: 100%;
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
 }
 
+/* Разделитель между элементами */
+.action-item + .action-item {
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    margin-left: 4px;
+    padding-left: 4px;
+}
+
+/* Общий сброс рамок/фонов — стиль как у nav-link */
 .phone-link,
 .callback-btn,
 .work-hours {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 15px;
-    border-radius: 6px;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 30px;
     font-family: 'JetBrains Mono', 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: bold;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
     transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    width: 100%;
-    justify-content: center;
     text-decoration: none;
-    border: 1px solid;
+    background: transparent;
+    border: none;
     cursor: pointer;
-}
-
-/* Стиль номера телефона */
-.phone-link {
-    background: rgba(255, 0, 255, 0.1);
-    border-color: var(--neon-pink);
     color: var(--text-white);
-    animation: phone-glow 3s ease-in-out infinite;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+    position: relative;
+    overflow: hidden;
 }
 
-.phone-icon {
-    font-size: 0.9rem;
-    filter: drop-shadow(0 0 3px var(--neon-pink));
+/* Нижняя подсветка при hover — как у nav-link::before */
+.phone-link::before,
+.callback-btn::before,
+.work-hours::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-cyan));
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px var(--neon-cyan);
 }
 
-@keyframes phone-glow {
-    0%, 100% {
-        box-shadow: 0 0 5px rgba(255, 0, 255, 0.3);
-        border-color: var(--neon-pink);
-    }
-    50% {
-        box-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
-        border-color: #ff80ff;
-    }
+.phone-link:hover::before,
+.callback-btn:hover::before {
+    width: 70%;
+}
+
+/* Телефон — акцент на pink как активная ссылка */
+.phone-link {
+    color: var(--neon-pink);
+    text-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 .phone-link:hover {
-    background: rgba(255, 0, 255, 0.2);
-    transform: translateY(-1px);
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+    background: rgba(255, 0, 255, 0.1);
+    color: var(--neon-pink);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 0, 255, 0.3);
 }
 
-/* Стиль кнопки вызова мастера */
+.phone-icon {
+    font-size: 0.85rem;
+}
+
+/* Кнопка мастера — акцент на cyan */
 .callback-btn {
-    background: transparent;
     color: var(--neon-cyan);
-    border-color: var(--neon-cyan);
-    text-transform: uppercase;
-    animation: callback-glow 3s ease-in-out infinite;
-}
-
-@keyframes callback-glow {
-    0%, 100% {
-        box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
-        border-color: var(--neon-cyan);
-    }
-    50% {
-        box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-        border-color: #80ffff;
-    }
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
 }
 
 .callback-btn:hover {
-    background: var(--neon-cyan);
-    color: var(--dark-bg);
-    box-shadow: 0 0 15px var(--neon-cyan);
-    transform: translateY(-1px);
+    background: rgba(0, 255, 255, 0.1);
+    color: var(--neon-cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
 }
 
-/* Стиль времени работы */
+/* Время работы — без hover-эффекта, просто информация */
 .work-hours {
-    background: rgba(0, 255, 255, 0.1);
-    border-color: var(--neon-cyan);
-    color: var(--text-white);
-    animation: work-hours-glow 3s ease-in-out infinite;
     cursor: default;
+    opacity: 0.75;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
 }
 
 .work-icon {
-    font-size: 0.9rem;
-    filter: drop-shadow(0 0 3px var(--neon-cyan));
+    font-size: 0.85rem;
 }
 
 .work-text {
-    text-shadow: 0 0 5px var(--neon-cyan);
-}
-
-@keyframes work-hours-glow {
-    0%, 100% {
-        box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
-        border-color: var(--neon-cyan);
-    }
-    50% {
-        box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-        border-color: #80ffff;
-    }
+    color: var(--text-white);
 }
 
 /* Навигация */
@@ -626,7 +642,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: -2;
-    opacity: 0.7;
+    opacity: 1; /* градиент неба в background.js управляет яркостью сам */
     pointer-events: none;
 }
 
@@ -635,26 +651,11 @@ body {
     z-index: 1;
 }
 
-.header, main {
-    background: rgba(17, 17, 17, 0.7);
-    /* ОПТИМИЗАЦИЯ: backdrop-filter убран — фон достаточно непрозрачен */
+main {
+    background: rgba(10, 8, 25, 0.55); /* основные блоки — чуть темнее шапки */
 }
 
-.header {
-    background: rgba(26, 26, 26, 0.9);
-}
-
-/* Стили для цифрового дождя */
-.matrix-rain {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 30vh;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0.7;
-}
+/* matrix-rain теперь работает как лоадер — см. стили .matrix-loader ниже */
 
 .city-background {
     z-index: -1;
@@ -666,7 +667,7 @@ body {
 
 .header {
     z-index: 3;
-    background: rgba(26, 26, 26, 0.85);
+    /* background задан выше в базовом правиле */
 }
 
 /* Стили для TV диагностического лоадера */
@@ -2852,51 +2853,49 @@ body {
 @media (max-width: 768px) {
     .header {
         flex-direction: column;
-        gap: 20px;
-    }
-    
-    .header-actions {
+        gap: 15px;
         align-items: center;
-        min-width: 180px;
     }
-    
+
+    .header-actions {
+        padding: 6px 15px;
+        gap: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
     .logo-text {
         font-size: 14px;
     }
-    
+
     .logo-glitch {
         min-width: 250px;
     }
-    
+
     .phone-link,
     .callback-btn,
     .work-hours {
-        padding: 7px 12px;
+        padding: 6px 12px;
         font-size: 0.8rem;
     }
 }
 
 @media (max-width: 480px) {
     .header-actions {
-        min-width: 160px;
-        gap: 6px;
+        padding: 5px 10px;
     }
-    
+
     .phone-link,
     .callback-btn,
     .work-hours {
-        padding: 6px 10px;
+        padding: 5px 10px;
         font-size: 0.75rem;
+        letter-spacing: 0.5px;
     }
-    
-    .work-text {
-        font-size: 0.7rem;
-        letter-spacing: 0.3px;
-    }
-    
-    .phone-icon,
-    .work-icon {
-        font-size: 0.8rem;
+
+    /* На очень маленьких экранах прячем время работы — экономим место */
+    .work-item {
+        display: none;
     }
 }
 
@@ -2946,16 +2945,86 @@ body {
     box-shadow: 0 0 10px rgba(255, 68, 68, 0.3) !important;
 }
 
-/* =====================================================
-   ОПТИМИЗАЦИЯ: Отключаем тяжёлые эффекты на слабых
-   устройствах и при prefers-reduced-motion
-   ===================================================== */
 
-/* На слабых мобильных (Android/touchscreen) убираем backdrop-filter.
-   pointer: coarse = сенсорный экран (Android, старые планшеты).
-   На iPhone это тоже сработает, но там GPU мощный и blur не тормозит —
-   если хочешь оставить blur на iOS, добавь проверку через JS (navigator.userAgent).
-   Все элементы с backdrop-filter перечислены явно. */
+header.header,
+section.work-stages,
+section.services,
+section.why-me,
+section.contacts-section,
+section.scanner-section {
+    opacity: 0;
+    transform: translateY(8px);
+    /* transition пока выключен — включится когда JS добавит .revealed */
+}
+
+header.header.revealed,
+section.revealed {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+/* Страховка: если лоадер уже завершился — всё открываем */
+body.loader-done header.header,
+body.loader-done section {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+}
+
+/* ============================================================
+   MATRIX LOADER — полноэкранный лоадер при открытии сайта
+   ============================================================ */
+.matrix-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    background: transparent; /* сайт виден под дождём */
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0s; /* управляем через JS */
+}
+
+.matrix-loader canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.matrix-skip-btn {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    background: transparent;
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    color: rgba(0, 255, 255, 0.6);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    padding: 8px 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+.matrix-skip-btn:hover {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+@media (max-width: 480px) {
+    .matrix-skip-btn {
+        bottom: 20px;
+        right: 15px;
+        font-size: 0.7rem;
+        padding: 6px 12px;
+    }
+}
+
 @media (max-width: 768px) and (pointer: coarse) {
     .phone-link,
     .callback-btn,
@@ -2972,8 +3041,10 @@ body {
 
 /* Уважаем системную настройку "уменьшить движение" */
 @media (prefers-reduced-motion: reduce) {
-    .city-background,
-    .matrix-rain {
+    .city-background {
+        display: none !important;
+    }
+    .matrix-loader {
         display: none !important;
     }
     * {
