@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
 :root {
     --neon-pink: #FF00FF;
     --neon-cyan: #00FFFF;
@@ -18,7 +20,8 @@
 body {
     background-color: var(--darker-bg);
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    /* ОПТИМИЗАЦИЯ: Share Tech Mono одинаково выглядит на Android, iOS, Windows */
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     line-height: 1.6;
 }
 
@@ -90,7 +93,7 @@ body {
 }
 
 .logo-text-glitch {
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 32px;
     font-weight: bold;
     color: var(--text-white);
@@ -178,6 +181,14 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    /* Добавляем затемнение */
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
 }
 
 .logo-tagline::before {
@@ -186,7 +197,9 @@ body {
     font-size: 15px;
     color: var(--text-white);
     letter-spacing: 2px;
-    text-shadow: 0 0 5px var(--neon-pink);
+    text-shadow: 
+        0 0 5px var(--neon-pink),
+        0 0 10px rgba(0, 0, 0, 0.8);
     margin-bottom: 2px;
 }
 
@@ -196,8 +209,10 @@ body {
     font-size: 15px;
     color: var(--neon-cyan);
     letter-spacing: 1px;
-    text-shadow: 0 0 5px var(--neon-cyan),
-                 0 0 10px var(--neon-cyan);
+    text-shadow: 
+        0 0 5px var(--neon-cyan),
+        0 0 10px var(--neon-cyan),
+        0 0 15px rgba(0, 0, 0, 0.8);
     animation: city-pulse 3s ease-in-out infinite alternate;
 }
 
@@ -249,7 +264,7 @@ body {
     gap: 8px;
     padding: 8px 15px;
     border-radius: 6px;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.9rem;
     font-weight: bold;
     letter-spacing: 0.5px;
@@ -351,98 +366,145 @@ body {
 /* Навигация */
 .nav {
     display: flex;
-    gap: 30px;
+    gap: 20px;
+    position: relative;
+    z-index: 12;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    padding: 8px 25px;
+    margin: 0 20px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 0, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+/* Эффект "включенного терминала" - пульсирующая граница */
+.nav::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(45deg, 
+        var(--neon-pink), 
+        var(--neon-cyan), 
+        var(--neon-pink));
+    border-radius: 50px;
+    z-index: -2;
+    opacity: 0.3;
+    filter: blur(5px);
+    animation: border-pulse 3s ease-in-out infinite;
+}
+
+@keyframes border-pulse {
+    0%, 100% { opacity: 0.3; filter: blur(5px); }
+    50% { opacity: 0.6; filter: blur(8px); }
 }
 
 .nav-link {
     color: var(--text-white);
     text-decoration: none;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    font-size: 1rem;
+    font-weight: bold;
     transition: all 0.3s ease;
+    position: relative;
+    padding: 8px 18px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+    border-radius: 30px;
+    overflow: hidden;
 }
 
+/* Индикатор активной ссылки (нижняя подсветка) */
+.nav-link::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        var(--neon-pink), 
+        var(--neon-cyan));
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.nav-link:hover::before,
+.nav-link.active::before {
+    width: 70%;
+}
+
+/* Фон при наведении */
 .nav-link:hover {
+    background: rgba(255, 0, 255, 0.1);
     color: var(--neon-pink);
-    text-shadow: 0 0 10px var(--neon-pink);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 0, 255, 0.3);
 }
 
-/* Анимации */
-@keyframes scan {
-    0% { left: -100%; }
-    100% { left: 100%; }
+/* Активная ссылка */
+.nav-link.active {
+    background: rgba(0, 255, 255, 0.1);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
 }
 
-@keyframes static {
-    0% { opacity: 0.1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 0.1; }
+/* Маленькие квадратики как в старых интерфейсах */
+.nav-link span {
+    position: relative;
+    z-index: 1;
 }
 
-@keyframes glitch-3 {
-    0% {
-        transform: translate(0);
-        opacity: 1;
-    }
-    20% {
-        transform: translate(-3px, 3px);
-        opacity: 0.8;
-    }
-    40% {
-        transform: translate(-3px, -3px);
-        opacity: 0.8;
-    }
-    60% {
-        transform: translate(3px, 3px);
-        opacity: 0.8;
-    }
-    80% {
-        transform: translate(3px, -3px);
-        opacity: 0.8;
-    }
-    100% {
-        transform: translate(0);
-        opacity: 1;
-    }
+.nav-link span::before,
+.nav-link span::after {
+    content: '▌';
+    position: absolute;
+    opacity: 0;
+    color: var(--neon-cyan);
+    font-size: 0.8rem;
+    transition: opacity 0.3s ease;
 }
 
-@keyframes glitch-4 {
-    0% {
-        transform: translate(0);
-        opacity: 1;
-    }
-    20% {
-        transform: translate(2px, -2px);
-        opacity: 0.8;
-    }
-    40% {
-        transform: translate(2px, 2px);
-        opacity: 0.8;
-    }
-    60% {
-        transform: translate(-2px, -2px);
-        opacity: 0.8;
-    }
-    80% {
-        transform: translate(-2px, 2px);
-        opacity: 0.8;
-    }
-    100% {
-        transform: translate(0);
-        opacity: 1;
-    }
+.nav-link span::before {
+    left: -10px;
 }
 
-@keyframes glitch-overlay {
-    0%, 95%, 100% {
-        opacity: 0;
-        transform: translate(0);
-    }
-    5%, 90% {
-        opacity: 0.1;
-        transform: translate(-2px, 1px);
-    }
+.nav-link span::after {
+    right: -10px;
+    transform: rotate(180deg);
 }
+
+.nav-link:hover span::before,
+.nav-link:hover span::after {
+    opacity: 1;
+}
+
+/* Адаптив для навигации */
+    @media (max-width: 768px) {
+        .nav {
+            gap: 10px;
+            padding: 5px 15px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .nav-link {
+            font-size: 0.9rem;
+            padding: 6px 12px;
+        }
+        
+        .nav-link span::before,
+        .nav-link span::after {
+            display: none;
+        }
+    }
 
 /* Адаптивность для увеличенного лого */
 @media (max-width: 768px) {
@@ -530,50 +592,6 @@ body {
     }
 }
 
-/* Мобильная навигация */
-@media (max-width: 768px) {
-    .nav {
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-        width: 100%;
-        margin: 20px 0;
-        padding: 0;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .nav-link {
-        color: var(--text-white);
-        text-decoration: none;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-size: 14px;
-        font-weight: bold;
-        padding: 5px 0;
-        background: none;
-        border: none;
-        animation: text-blink 4s ease-in-out infinite;
-    }
-    
-    .nav-link:nth-child(1) { animation-delay: 0s; }
-    .nav-link:nth-child(2) { animation-delay: 1s; }
-    .nav-link:nth-child(3) { animation-delay: 2s; }
-    .nav-link:nth-child(4) { animation-delay: 3s; }
-    
-    @keyframes text-blink {
-        0%, 70%, 100% {
-            color: var(--text-white);
-            text-shadow: none;
-        }
-        10%, 60% {
-            color: var(--neon-pink);
-            text-shadow: 0 0 10px var(--neon-pink),
-                         0 0 20px var(--neon-pink),
-                         0 0 30px var(--neon-pink);
-        }
-    }
-}
 
 /* Для очень маленьких экранов */
 @media (max-width: 480px) {
@@ -619,7 +637,7 @@ body {
 
 .header, main {
     background: rgba(17, 17, 17, 0.7);
-    backdrop-filter: blur(5px);
+    /* ОПТИМИЗАЦИЯ: backdrop-filter убран — фон достаточно непрозрачен */
 }
 
 .header {
@@ -669,7 +687,7 @@ body {
     height: 100%;
     background: #001100;
     color: #00ff00;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 18px;
     line-height: 1.3;
     overflow: hidden;
@@ -858,7 +876,7 @@ body {
     text-shadow: 0 0 10px var(--neon-pink),
                  0 0 20px var(--neon-pink),
                  0 0 30px var(--neon-pink);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     animation: title-glitch 5s infinite;
 }
@@ -880,7 +898,7 @@ body {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     backdrop-filter: blur(10px);
 }
 
@@ -936,7 +954,7 @@ body {
     margin-bottom: 20px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     text-shadow: 2px 2px 0px var(--neon-pink);
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.8);
@@ -1008,7 +1026,7 @@ body {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 .service-card:hover .service-time {
@@ -1150,306 +1168,6 @@ body {
     }
 }
 
-/* Секция Цены */
-.pricing {
-    padding: 80px 20px;
-    background: transparent;
-    position: relative;
-    z-index: 2;
-}
-
-.pricing-blocks-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.price-block {
-    background: rgba(26, 26, 26, 0.2);
-    border-radius: 10px;
-    padding: 25px;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-    height: fit-content;
-}
-
-.price-block:hover {
-    transform: translateY(-5px);
-    background: rgba(26, 26, 26, 0.6);
-}
-
-.block-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.block-icon {
-    font-size: 2rem;
-    filter: drop-shadow(0 0 8px currentColor) 
-            drop-shadow(0 0 15px currentColor);
-}
-
-.block-title {
-    color: var(--text-white);
-    font-size: 1.2rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-family: 'Courier New', monospace;
-    margin: 0;
-    line-height: 1.3;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
-}
-
-.profitable-repair {
-    border: 2px solid var(--neon-green);
-    animation: profitable-glow 3s ease-in-out infinite;
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
-}
-
-.profitable-repair .block-icon {
-    filter: drop-shadow(0 0 10px var(--neon-green));
-}
-
-.profitable-repair .block-title {
-    color: var(--neon-green);
-    text-shadow: 0 0 10px var(--neon-green);
-}
-
-.not-profitable {
-    border: 2px solid #ff4444;
-    animation: not-profitable-pulse 2s ease-in-out infinite;
-    box-shadow: 0 0 30px rgba(255, 68, 68, 0.3);
-}
-
-.not-profitable .block-icon {
-    filter: drop-shadow(0 0 10px #ff4444);
-}
-
-.not-profitable .block-title {
-    color: #ff4444;
-    text-shadow: 0 0 10px #ff4444;
-}
-
-.warning-text {
-    color: #ff4444;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    display: block;
-    margin-top: 5px;
-}
-
-.buyout-alternative {
-    border: 2px solid gold;
-    animation: buyout-glow 3s ease-in-out infinite;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-}
-
-.buyout-alternative .block-icon {
-    filter: drop-shadow(0 0 10px gold);
-}
-
-.buyout-alternative .block-title {
-    color: gold;
-    text-shadow: 0 0 10px gold;
-}
-
-.price-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.price-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.service-name {
-    color: var(--text-white);
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    font-size: 0.9rem;
-}
-
-.price {
-    color: var(--neon-cyan);
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    text-shadow: 0 0 10px var(--neon-cyan),
-                 0 0 20px var(--neon-cyan);
-    font-size: 0.9rem;
-}
-
-.price-warning,
-.buyout-benefits {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.warning-item,
-.benefit-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.warning-icon,
-.benefit-icon {
-    font-size: 1.2rem;
-}
-
-.warning-item .warning-text,
-.benefit-text {
-    color: var(--text-white);
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-}
-
-.benefit-icon {
-    filter: drop-shadow(0 0 5px gold);
-}
-
-@keyframes profitable-glow {
-    0%, 100% { 
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
-    }
-    50% { 
-        box-shadow: 0 0 40px rgba(0, 255, 0, 0.6);
-    }
-}
-
-@keyframes not-profitable-pulse {
-    0%, 100% { 
-        box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
-    }
-    50% { 
-        box-shadow: 0 0 35px rgba(255, 68, 68, 0.6);
-    }
-}
-
-@keyframes buyout-glow {
-    0%, 100% { 
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-    }
-    50% { 
-        box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
-    }
-}
-
-@media (max-width: 1024px) {
-    .pricing-blocks-container {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-    
-    .price-block {
-        padding: 20px;
-    }
-}
-
-@media (max-width: 768px) {
-    .pricing {
-        padding: 50px 15px;
-    }
-    
-    .pricing-blocks-container {
-        grid-template-columns: 1fr;
-        gap: 15px;
-        max-width: 500px;
-    }
-    
-    .price-block {
-        padding: 20px;
-    }
-    
-    .block-header {
-        flex-direction: row;
-        text-align: left;
-        gap: 12px;
-    }
-    
-    .block-title {
-        font-size: 1.1rem;
-    }
-    
-    .price-item {
-        flex-direction: row;
-        text-align: left;
-    }
-    
-    .warning-item,
-    .benefit-item {
-        flex-direction: row;
-        text-align: left;
-    }
-}
-
-@media (max-width: 480px) {
-    .pricing {
-        padding: 40px 10px;
-    }
-    
-    .price-block {
-        padding: 15px;
-    }
-    
-    .block-header {
-        gap: 10px;
-    }
-    
-    .block-icon {
-        font-size: 1.7rem;
-    }
-    
-    .block-title {
-        font-size: 1rem;
-    }
-    
-    .service-name,
-    .price,
-    .warning-item .warning-text,
-    .benefit-text {
-        font-size: 0.85rem;
-    }
-}
-
-.pricing-note {
-    text-align: left;
-    color: var(--text-gray);
-    margin-top: 25px;
-    font-size: 0.9rem;
-    font-style: italic;
-    font-family: 'Courier New', monospace;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 0 20px;
-}
-
-@media (max-width: 768px) {
-    .pricing-note {
-        padding: 0 15px;
-        margin-top: 20px;
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .pricing-note {
-        padding: 0 10px;
-        margin-top: 15px;
-        font-size: 0.8rem;
-    }
-}
-
 /* Секция Почему я */
 .why-me {
     padding: 60px 20px 30px 20px;
@@ -1467,7 +1185,7 @@ body {
     max-width: 400px;
     margin-left: auto;
     margin-right: auto;
-    backdrop-filter: blur(15px);
+    /* ОПТИМИЗАЦИЯ: backdrop-filter убран с анимированного элемента */
     animation: banner-pulse 3s ease-in-out infinite;
     text-align: center;
 }
@@ -1496,7 +1214,7 @@ body {
 
 .banner-text {
     color: var(--neon-pink);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1.8rem;
     font-weight: bold;
     text-transform: uppercase;
@@ -1531,7 +1249,7 @@ body {
 
 .option-text {
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1.1rem;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -1568,7 +1286,7 @@ body {
 
 .item-number {
     color: var(--neon-pink);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     font-size: 0.9rem;
     text-shadow: 0 0 5px var(--neon-pink);
@@ -1593,7 +1311,7 @@ body {
 
 .item-text {
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     font-size: 0.9rem;
     text-transform: uppercase;
@@ -1729,7 +1447,7 @@ body {
 }
 
 .contact-label {
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     font-size: 16px;
     color: var(--text-white);
@@ -1830,7 +1548,7 @@ body {
     border-radius: 8px;
     padding: 20px 25px;
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     text-transform: uppercase;
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -1840,7 +1558,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 15px;
-    backdrop-filter: blur(15px);
+    /* ОПТИМИЗАЦИЯ: backdrop-filter убран с анимированного элемента */
     box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
     animation: banner-pulse 3s ease-in-out infinite;
 }
@@ -1852,7 +1570,7 @@ body {
 }
 
 .master-call-text {
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1.4rem;
     font-weight: bold;
     text-transform: uppercase;
@@ -2043,7 +1761,7 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 20px 0;
     margin-top: 50px;
-    backdrop-filter: blur(10px);
+    /* ОПТИМИЗАЦИЯ: backdrop-filter убран — фон 0.9 непрозрачности, blur не виден */
 }
 
 .footer-content {
@@ -2065,7 +1783,7 @@ body {
     color: var(--text-gray);
     text-decoration: none;
     font-size: 12px;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     transition: all 0.3s ease;
     text-align: center;
 }
@@ -2087,7 +1805,7 @@ body {
 .copyright-text {
     color: var(--text-gray);
     font-size: 11px;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     opacity: 0.7;
 }
 
@@ -2201,7 +1919,8 @@ body {
     border: 2px solid #ff00ff;
     border-radius: 15px;
     padding: 15px;
-    backdrop-filter: blur(15px);
+    /* ОПТИМИЗАЦИЯ: уменьшен blur с 15px до 5px — фон 0.95, разница незаметна */
+    backdrop-filter: blur(5px);
     box-shadow: 
         0 0 30px rgba(255, 0, 255, 0.5),
         inset 0 0 10px rgba(255, 255, 255, 0.1);
@@ -2247,7 +1966,7 @@ body {
 }
 
 .menu-text {
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     font-size: 14px;
     color: var(--text-white);
@@ -2583,7 +2302,7 @@ body {
 
 .description-text {
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1rem;
     text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
     animation: text-fade 0.5s ease;
@@ -2712,7 +2431,7 @@ body {
 
 .modal-title {
     color: var(--neon-cyan);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1.3rem;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -2753,7 +2472,7 @@ body {
 .form-label {
     display: block;
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -2767,7 +2486,7 @@ body {
     border-radius: 6px;
     padding: 12px 15px;
     color: var(--neon-green);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-weight: bold;
     text-shadow: 0 0 5px var(--neon-green);
 }
@@ -2780,7 +2499,7 @@ body {
     border-radius: 6px;
     padding: 12px 15px;
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.9rem;
     transition: all 0.3s ease;
 }
@@ -2876,7 +2595,7 @@ body {
     border-radius: 6px;
     padding: 15px;
     color: #000;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1rem;
     font-weight: bold;
     text-transform: uppercase;
@@ -2995,7 +2714,7 @@ body {
 
 .success-title {
     color: var(--neon-green);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 1.4rem;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -3009,14 +2728,14 @@ body {
 
 .countdown-text {
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.9rem;
     margin-bottom: 10px;
 }
 
 .countdown-timer {
     color: var(--neon-cyan);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 2.5rem;
     font-weight: bold;
     text-shadow: 
@@ -3039,7 +2758,7 @@ body {
 
 .countdown-label {
     color: var(--text-gray);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -3047,7 +2766,7 @@ body {
 
 .loading-dots {
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.9rem;
     margin-bottom: 25px;
     min-height: 1.5em;
@@ -3077,7 +2796,7 @@ body {
 
 .success-contact {
     color: var(--text-gray);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.8rem;
     margin-bottom: 15px;
 }
@@ -3099,7 +2818,7 @@ body {
     border-radius: 6px;
     padding: 10px 20px;
     color: var(--text-white);
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -3147,10 +2866,6 @@ body {
     
     .logo-glitch {
         min-width: 250px;
-    }
-    
-    .nav {
-        gap: 15px;
     }
     
     .phone-link,
@@ -3203,7 +2918,7 @@ body {
 .phone-hint {
     color: #ff4444;
     font-size: 0.8rem;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
     margin-top: 5px;
     text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
     animation: hint-pulse 2s ease-in-out infinite;
@@ -3229,4 +2944,47 @@ body {
 .form-input:invalid {
     border-color: #ff4444 !important;
     box-shadow: 0 0 10px rgba(255, 68, 68, 0.3) !important;
+}
+
+/* =====================================================
+   ОПТИМИЗАЦИЯ: Отключаем тяжёлые эффекты на слабых
+   устройствах и при prefers-reduced-motion
+   ===================================================== */
+
+/* На слабых мобильных (Android/touchscreen) убираем backdrop-filter.
+   pointer: coarse = сенсорный экран (Android, старые планшеты).
+   На iPhone это тоже сработает, но там GPU мощный и blur не тормозит —
+   если хочешь оставить blur на iOS, добавь проверку через JS (navigator.userAgent).
+   Все элементы с backdrop-filter перечислены явно. */
+@media (max-width: 768px) and (pointer: coarse) {
+    .phone-link,
+    .callback-btn,
+    .work-hours,
+    .service-card,
+    .advantage-item,
+    .contacts-panel,
+    .contact-menu,
+    .modal-overlay {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+}
+
+/* Уважаем системную настройку "уменьшить движение" */
+@media (prefers-reduced-motion: reduce) {
+    .city-background,
+    .matrix-rain {
+        display: none !important;
+    }
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Анимация для квадратиков */
+@keyframes blink-square {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
