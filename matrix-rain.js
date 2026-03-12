@@ -1,12 +1,23 @@
-// matrix-rain.js
 class MatrixRain {
     constructor() {
         this.canvas = document.getElementById('matrixRain');
-        this.ctx = this.canvas.getContext('2d');
-        this.symbols = 'TVFIX8BIT80SGLITCHPIXEL01';
-        this.columns = [];
+        this.ctx    = this.canvas.getContext('2d');
+
+        this.symbols    = 'TVFIX8BIT80SGLITCHPIXEL01';
+        this.columns    = [];
         this.animationId = null;
-        
+
+        // Определяем тип устройства
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Лимит FPS: 24 на мобильных (плавно и экономно), 60 на десктопе
+        this.fpsLimit    = this.isMobile ? 24 : 60;
+        this.fpsInterval = 1000 / this.fpsLimit;
+        this.lastFrameTime = 0;
+
+        // Флаг паузы при скрытой вкладке
+        this.isPaused = false;
+
         this.init();
     }
 
@@ -14,173 +25,219 @@ class MatrixRain {
         this.resizeCanvas();
         this.createColumns();
         this.animate();
-        
+
         window.addEventListener('resize', () => {
             this.resizeCanvas();
             this.createColumns();
         });
 
-        // Добавляем интерактивность
+        // Пауза когда пользователь переключил вкладку или свернул браузер.
+        // Без этого анимация продолжает жечь GPU и батарею в фоне.
+        document.addEventListener('visibilitychange', () => {
+            this.isPaused = document.hidden;
+        });
+
         this.addInteractivity();
     }
 
     resizeCanvas() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight * 0.3; // Только верхние 30% экрана
+        // devicePixelRatio: на обычных экранах = 1, на Retina/Android HiDPI = 2 или 3.
+        // Без учёта dpr символы выглядят размытыми — особенно заметно на Android.
+        // Ограничиваем до 2x: 3x даёт почти незаметный прирост, но сильно грузит GPU.
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        const cssW = window.innerWidth;
+        const cssH = window.innerHeight * 0.3; // дождь занимает верхние 30% экрана
+
+        // Физический размер canvas = CSS-размер × dpr
+        this.canvas.width  = cssW * dpr;
+        this.canvas.height = cssH * dpr;
+
+        // CSS-размер не меняем, чтобы canvas занимал ровно 30% высоты
+        this.canvas.style.width  = cssW + 'px';
+        this.canvas.style.height = cssH + 'px';
+
+        // ВАЖНО: canvas.width = ... выше уже сбросило все трансформации контекста,
+        // поэтому ctx.scale() здесь применяется ровно один раз — накопления нет.
+        // Масштабируем контекст — все дальнейшие координаты пишем в CSS-пикселях
+        this.ctx.scale(dpr, dpr);
+
+        // Сохраняем CSS-размеры для логики колонок
+        this.cssWidth  = cssW;
+        this.cssHeight = cssH;
+
+        // Шрифт нужно переустановить после scale — иначе сбрасывается
+        this.ctx.font = 'bold 14px "Courier New", monospace';
     }
 
     createColumns() {
         this.columns = [];
-        const columnWidth = 20;
-        const columnsCount = Math.floor(this.canvas.width / columnWidth);
-        
+
+        const columnWidth  = 20;
+        const cssW = this.cssWidth || window.innerWidth;
+        const columnsCount = Math.floor(cssW / columnWidth);
+
         for (let i = 0; i < columnsCount; i++) {
             this.columns.push({
-                x: i * columnWidth,
-                y: Math.random() * -100, // Начинаем выше экрана
-                speed: 1 + Math.random() * 2,
-                symbols: this.generateSymbols(8 + Math.floor(Math.random() * 6)),
+                x:            i * columnWidth,
+                y:            Math.random() * -100,       // стартуем выше экрана
+                speed:        1 + Math.random() * 2,
+                symbols:      this.generateSymbols(8 + Math.floor(Math.random() * 6)),
                 currentSymbol: 0,
-                isGlitching: false,
-                glitchTimer: 0
+                isGlitching:  false,
+                glitchTimer:  0
             });
         }
     }
 
     generateSymbols(length) {
-        const symbols = [];
+        const result = [];
         for (let i = 0; i < length; i++) {
-            symbols.push(this.symbols[Math.floor(Math.random() * this.symbols.length)]);
+            result.push(this.symbols[Math.floor(Math.random() * this.symbols.length)]);
         }
-        return symbols;
+        return result;
     }
 
     draw() {
-        // Полупрозрачный фон для плавного исчезновения
-        this.ctx.fillStyle = 'rgba(17, 17, 17, 0.1)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        const w = this.cssWidth  || window.innerWidth;
+        const h = this.cssHeight || window.innerHeight * 0.3;
 
-        this.columns.forEach(column => {
-            this.drawColumn(column);
-        });
+        // Полупрозрачный фон создаёт эффект постепенного исчезновения символов
+        this.ctx.fillStyle = 'rgba(17, 17, 17, 0.1)';
+        this.ctx.fillRect(0, 0, w, h);
+
+        // Устанавливаем шрифт один раз на весь кадр — это быстрее чем
+        // устанавливать его внутри drawSymbol() на каждый символ отдельно
+        this.ctx.font = 'bold 14px "Courier New", monospace';
+
+        this.columns.forEach(column => this.drawColumn(column));
     }
 
     drawColumn(column) {
         const symbolHeight = 12;
-        const x = column.x;
-        
-        // Рисуем символы колонки
+        const cssH = this.cssHeight || window.innerHeight * 0.3;
+
         for (let i = 0; i < column.symbols.length; i++) {
             const y = column.y + i * symbolHeight;
-            
-            // Пропускаем символы за пределами экрана
-            if (y < -symbolHeight || y > this.canvas.height) continue;
-            
-            const symbol = column.symbols[i];
+
+            // Пропускаем символы за пределами видимой области
+            if (y < -symbolHeight || y > cssH) continue;
+
+            const symbol  = column.symbols[i];
             const opacity = this.calculateOpacity(i, column.symbols.length);
-            const color = this.getSymbolColor(i, column);
-            
-            this.drawSymbol(symbol, x, y, color, opacity);
+            const color   = this.getSymbolColor(i, column);
+
+            this.drawSymbol(symbol, column.x, y, color, opacity);
         }
     }
 
     drawSymbol(symbol, x, y, color, opacity) {
+        // Добавляем альфа-канал к цвету для эффекта затухания.
+        // Шрифт уже задан в draw() один раз — здесь не повторяем.
         this.ctx.fillStyle = color.replace(')', `, ${opacity})`).replace('rgb', 'rgba');
-        this.ctx.font = 'bold 14px "Courier New", monospace';
         this.ctx.fillText(symbol, x, y);
     }
 
     calculateOpacity(symbolIndex, totalSymbols) {
-        // Первые символы ярче, последние тусклее
-        if (symbolIndex === 0) return 1; // Лидирующий символ
+        // Ведущий символ (верхний) — самый яркий
+        if (symbolIndex === 0) return 1;
+        // Хвост постепенно угасает
         return Math.max(0.2, 1 - (symbolIndex / totalSymbols) * 0.8);
     }
 
     getSymbolColor(symbolIndex, column) {
         if (column.isGlitching) {
-            const colors = ['#FF00FF', '#00FFFF', '#FFFF00'];
-            return colors[Math.floor(Math.random() * colors.length)];
+            // Во время глитча — случайный неоновый цвет
+            const glitchColors = ['#FF00FF', '#00FFFF', '#FFFF00'];
+            return glitchColors[Math.floor(Math.random() * glitchColors.length)];
         }
-        
-        return symbolIndex === 0 ? '#00FFFF' : '#FF00FF'; // Лидирующий символ голубой
+        // Ведущий символ — голубой, хвост — розовый
+        return symbolIndex === 0 ? '#00FFFF' : '#FF00FF';
     }
 
     update() {
+        const cssH = this.cssHeight || window.innerHeight * 0.3;
+
         this.columns.forEach(column => {
-            // Обновляем позицию
             column.y += column.speed;
-            
-            // Обновляем текущий символ для мерцания
+
             column.currentSymbol = (column.currentSymbol + 1) % 4;
-            
-            // Случайный глитч
+
+            // Случайный глитч — срабатывает с вероятностью 0.2% за кадр
             if (!column.isGlitching && Math.random() < 0.002) {
                 column.isGlitching = true;
-                column.glitchTimer = 10; // 10 кадров глитча
+                column.glitchTimer = 10;
             }
-            
-            // Обработка глитча
+
             if (column.isGlitching) {
                 column.glitchTimer--;
                 if (column.glitchTimer <= 0) {
                     column.isGlitching = false;
-                    // Меняем символы после глитча
                     column.symbols = this.generateSymbols(column.symbols.length);
                 }
             }
-            
-            // Если колонка ушла за экран - перезапускаем
-            if (column.y > this.canvas.height + column.symbols.length * 12) {
+
+            // Колонка ушла за нижний край — перезапускаем сверху
+            if (column.y > cssH + column.symbols.length * 12) {
                 this.resetColumn(column);
             }
         });
     }
 
     resetColumn(column) {
-        column.y = -Math.random() * 100;
-        column.speed = 1 + Math.random() * 2;
-        column.symbols = this.generateSymbols(8 + Math.floor(Math.random() * 6));
+        column.y          = -Math.random() * 100;
+        column.speed      = 1 + Math.random() * 2;
+        column.symbols    = this.generateSymbols(8 + Math.floor(Math.random() * 6));
         column.isGlitching = false;
     }
 
     addInteractivity() {
         const logo = document.getElementById('mainLogo');
-        const nav = document.querySelector('.nav');
-        
-        // Ускорение при наведении на логотип
+        const nav  = document.querySelector('.nav');
+
+        // Ускорение символов при наведении на логотип
         if (logo) {
             logo.addEventListener('mouseenter', () => {
-                this.columns.forEach(column => {
-                    column.speed *= 2;
-                });
+                this.columns.forEach(col => { col.speed *= 2; });
             });
-            
             logo.addEventListener('mouseleave', () => {
-                this.columns.forEach(column => {
-                    column.speed /= 2;
-                });
+                this.columns.forEach(col => { col.speed /= 2; });
             });
         }
-        
-        // Эффект обтекания для навигации
+
+        // Случайный глитч при наведении на навигацию
         if (nav) {
             nav.addEventListener('mouseenter', () => {
-                this.columns.forEach(column => {
-                    if (Math.random() < 0.3) { // 30% колонок реагируют
-                        column.isGlitching = true;
-                        column.glitchTimer = 20;
+                this.columns.forEach(col => {
+                    if (Math.random() < 0.3) {
+                        col.isGlitching = true;
+                        col.glitchTimer = 20;
                     }
                 });
             });
         }
     }
 
-    animate() {
+    animate(timestamp = 0) {
+        // rAF ставим первым — гарантируем следующий кадр
+        // даже если досрочно выходим из-за паузы или лимита FPS
+        this.animationId = requestAnimationFrame((ts) => this.animate(ts));
+
+        // Пауза: вкладка не видна — рисовать не нужно
+        if (this.isPaused) return;
+
+        // Ограничение FPS.
+        // elapsed % fpsInterval — убирает накопленное смещение времени,
+        // иначе при 24fps часть кадров будет чуть запаздывать.
+        const elapsed = timestamp - this.lastFrameTime;
+        if (elapsed < this.fpsInterval) return;
+        this.lastFrameTime = timestamp - (elapsed % this.fpsInterval);
+
         this.update();
         this.draw();
-        this.animationId = requestAnimationFrame(() => this.animate());
     }
 
+    // Полная остановка анимации (если понадобится вызвать извне)
     destroy() {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
@@ -188,7 +245,6 @@ class MatrixRain {
     }
 }
 
-// Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     new MatrixRain();
-});    
+});
