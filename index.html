@@ -256,28 +256,12 @@
 
 </head>
 <body>
-    <div id="tvLoader" class="tv-loader">
-         <div id="testScreen" class="test-pattern">
-        <div class="color-bars">
-            <div class="color-bar red"></div>
-            <div class="color-bar green"></div>
-            <div class="color-bar blue"></div>
-            <div class="color-bar white"></div>
-            <div class="color-bar black"></div>
-        </div>
-        <div class="test-pattern-overlay"></div>
-    </div>
-    <div class="crt-screen">
-        <div class="scan-lines"></div>
-        <div class="screen-content">
-            <div id="loaderContent" class="terminal-text"></div>
-        </div>
-        <div class="crt-overlay"></div>
-    </div>
+    <div id="matrixLoader" class="matrix-loader">
+    <canvas id="matrixLoaderCanvas"></canvas>
+    <button id="matrixSkipBtn" class="matrix-skip-btn">[ ПРОПУСТИТЬ ]</button>
 </div>
 
     <!-- Canvas для фона города -->
-    <canvas id="matrixRain" class="matrix-rain"></canvas>
     <canvas id="cityBackground" class="city-background"></canvas>
 
 
@@ -315,8 +299,8 @@
 
         <!-- Навигация -->
         <nav class="nav">
-            <a href="#services" class="nav-link">Услуги</a>
             <a href="#prices" class="nav-link">Цены</a>
+            <a href="#services" class="nav-link">Услуги</a>
             <a href="#about" class="nav-link">О нас</a>
         </nav>
 
@@ -729,7 +713,7 @@
                     <button class="sc-quick-btn" data-brand="Sony">Sony</button>
                     <button class="sc-quick-btn" data-brand="Philips">Philips</button>
                     <button class="sc-quick-btn" data-brand="Haier">Haier</button>
-                    <button class="sc-quick-btn" data-brand="TCL">TCL</button>
+                    <button class="sc-quick-btn" data-brand="Дугое">Другое</button>
                 </div>
             </div>
 
@@ -1003,7 +987,6 @@
     <script src="script.js"></script>
     <script src="background.js"></script>
     <script src="matrix-rain.js"></script>
-    <script src="loader.js"></script>
     <script src="yandex-metrika.js"></script>
     <script src="yandex-analytics.js"></script>
     <script src="scanner.js"></script>
