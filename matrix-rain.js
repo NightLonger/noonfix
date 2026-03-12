@@ -1,250 +1,310 @@
-class MatrixRain {
+class MatrixLoader {
     constructor() {
-        this.canvas = document.getElementById('matrixRain');
-        this.ctx    = this.canvas.getContext('2d');
+        this.overlay  = document.getElementById('matrixLoader');
+        this.canvas   = document.getElementById('matrixLoaderCanvas');
+        this.skipBtn  = document.getElementById('matrixSkipBtn');
+        this.ctx      = this.canvas.getContext('2d');
 
-        this.symbols    = 'TVFIX8BIT80SGLITCHPIXEL01';
-        this.columns    = [];
+        this.symbols  = 'TVFIX8BIT80SGLITCHPIXEL01NOONFIX';
+        this.columns  = [];
         this.animationId = null;
+        this.isFinishing = false;
 
-        // Определяем тип устройства
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // Через сколько мс начинается fade out
+        this.DURATION      = 5000;
+        this.FADE_DURATION = 1000;
 
-        // Лимит FPS: 24 на мобильных (плавно и экономно), 60 на десктопе
-        this.fpsLimit    = this.isMobile ? 24 : 60;
-        this.fpsInterval = 1000 / this.fpsLimit;
+        this.isMobile    = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        this.fpsInterval = 1000 / (this.isMobile ? 30 : 60);
         this.lastFrameTime = 0;
-
-        // Флаг паузы при скрытой вкладке
         this.isPaused = false;
+
+        // Карта секций для reveal: { el, revealed, xStart, xEnd }
+        this.revealSections = [];
+        // Процент колонок каждой секции которые должны пройти до reveal
+        this.REVEAL_THRESHOLD = 0.4;
+
+        document.addEventListener('visibilitychange', () => {
+            this.isPaused = document.hidden;
+        });
+
+        // Оверлей прозрачный — сайт виден под дождём
+        this.overlay.style.background = 'transparent';
+        // Блокируем прокрутку
+        document.body.style.overflow = 'hidden';
 
         this.init();
     }
 
+    // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────
+
     init() {
         this.resizeCanvas();
         this.createColumns();
+        this.ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
+        this.buildRevealMap();
         this.animate();
 
         window.addEventListener('resize', () => {
             this.resizeCanvas();
             this.createColumns();
+            this.buildRevealMap();
         });
 
-        // Пауза когда пользователь переключил вкладку или свернул браузер.
-        // Без этого анимация продолжает жечь GPU и батарею в фоне.
-        document.addEventListener('visibilitychange', () => {
-            this.isPaused = document.hidden;
-        });
+        this.startTimer = setTimeout(() => this.startFadeOut(), this.DURATION);
 
-        this.addInteractivity();
+        const skip = () => this.finish();
+        this.skipBtn.addEventListener('click', skip);
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'F5' && e.key !== 'F12') skip();
+        });
+        document.addEventListener('touchstart', skip, { once: true });
     }
 
+    // Строим карту: секция → диапазон X на экране
+    buildRevealMap() {
+        const selectors = [
+            'header.header',
+            'section.work-stages',
+            'section.services',
+            'section.why-me',
+            'section.contacts-section',
+            'section.scanner-section',
+        ];
+
+        this.revealSections = selectors.map(sel => {
+            const el = document.querySelector(sel);
+            if (!el) return null;
+            return {
+                el,
+                revealed:        false,
+                columnsInZone:   0,   // сколько колонок в зоне секции завершили проход
+                columnsTotal:    0,   // сколько всего колонок попадает на зону
+                xStart:          0,
+                xEnd:            0,
+            };
+        }).filter(Boolean);
+
+        this.updateRevealMap();
+    }
+
+    // Пересчитываем X-диапазоны по текущей ширине экрана
+    // Все секции full-width → xStart=0, xEnd=cssWidth,
+    // но триггером служат колонки достигшие НИЖНЕЙ точки секции
+    updateRevealMap() {
+        const w = this.cssWidth || window.innerWidth;
+        this.revealSections.forEach(s => {
+            s.xStart       = 0;
+            s.xEnd         = w;
+            s.columnsTotal = this.columns.length;
+            if (!s.revealed) s.columnsInZone = 0;
+        });
+    }
+
+    // ─── CANVAS ───────────────────────────────────────────────────────────────
+
     resizeCanvas() {
-        // devicePixelRatio: на обычных экранах = 1, на Retina/Android HiDPI = 2 или 3.
-        // Без учёта dpr символы выглядят размытыми — особенно заметно на Android.
-        // Ограничиваем до 2x: 3x даёт почти незаметный прирост, но сильно грузит GPU.
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
+        const dpr  = Math.min(window.devicePixelRatio || 1, 2);
         const cssW = window.innerWidth;
-        const cssH = window.innerHeight * 0.3; // дождь занимает верхние 30% экрана
+        const cssH = window.innerHeight;
 
-        // Физический размер canvas = CSS-размер × dpr
         this.canvas.width  = cssW * dpr;
         this.canvas.height = cssH * dpr;
-
-        // CSS-размер не меняем, чтобы canvas занимал ровно 30% высоты
         this.canvas.style.width  = cssW + 'px';
         this.canvas.style.height = cssH + 'px';
 
-        // ВАЖНО: canvas.width = ... выше уже сбросило все трансформации контекста,
-        // поэтому ctx.scale() здесь применяется ровно один раз — накопления нет.
-        // Масштабируем контекст — все дальнейшие координаты пишем в CSS-пикселях
         this.ctx.scale(dpr, dpr);
-
-        // Сохраняем CSS-размеры для логики колонок
         this.cssWidth  = cssW;
         this.cssHeight = cssH;
-
-        // Шрифт нужно переустановить после scale — иначе сбрасывается
-        this.ctx.font = 'bold 14px "Courier New", monospace';
     }
 
     createColumns() {
         this.columns = [];
+        const colW  = 20;
+        const count = Math.floor((this.cssWidth || window.innerWidth) / colW);
 
-        const columnWidth  = 20;
-        const cssW = this.cssWidth || window.innerWidth;
-        const columnsCount = Math.floor(cssW / columnWidth);
-
-        for (let i = 0; i < columnsCount; i++) {
+        for (let i = 0; i < count; i++) {
             this.columns.push({
-                x:            i * columnWidth,
-                y:            Math.random() * -100,       // стартуем выше экрана
-                speed:        1 + Math.random() * 2,
-                symbols:      this.generateSymbols(8 + Math.floor(Math.random() * 6)),
-                currentSymbol: 0,
-                isGlitching:  false,
-                glitchTimer:  0
+                x:     i * colW,
+                y:     Math.random() * -(this.cssHeight || window.innerHeight),
+                speed: 1.5 + Math.random() * 2.5,
+                syms:  this.generateSymbols(8 + Math.floor(Math.random() * 7)),
+                isGlitching: false,
+                glitchTimer: 0,
+                passedBottom: false,  // прошла ли колонка нижний край
             });
         }
+        if (this.revealSections) this.updateRevealMap();
     }
 
-    generateSymbols(length) {
-        const result = [];
-        for (let i = 0; i < length; i++) {
-            result.push(this.symbols[Math.floor(Math.random() * this.symbols.length)]);
-        }
-        return result;
+    generateSymbols(len) {
+        return Array.from({ length: len }, () =>
+            this.symbols[Math.floor(Math.random() * this.symbols.length)]
+        );
     }
 
-    draw() {
-        const w = this.cssWidth  || window.innerWidth;
-        const h = this.cssHeight || window.innerHeight * 0.3;
+    // ─── REVEAL ЛОГИКА ────────────────────────────────────────────────────────
 
-        // Полупрозрачный фон создаёт эффект постепенного исчезновения символов
-        this.ctx.fillStyle = 'rgba(17, 17, 17, 0.1)';
-        this.ctx.fillRect(0, 0, w, h);
+    // Вызывается когда колонка достигла нижнего края экрана
+    onColumnReachedBottom(column) {
+        if (column.passedBottom) return;
+        column.passedBottom = true;
 
-        // Устанавливаем шрифт один раз на весь кадр — это быстрее чем
-        // устанавливать его внутри drawSymbol() на каждый символ отдельно
-        this.ctx.font = 'bold 14px "Courier New", monospace';
+        // Для каждой ещё не открытой секции увеличиваем счётчик колонок
+        this.revealSections.forEach(section => {
+            if (section.revealed) return;
+            section.columnsInZone++;
 
-        this.columns.forEach(column => this.drawColumn(column));
-    }
-
-    drawColumn(column) {
-        const symbolHeight = 12;
-        const cssH = this.cssHeight || window.innerHeight * 0.3;
-
-        for (let i = 0; i < column.symbols.length; i++) {
-            const y = column.y + i * symbolHeight;
-
-            // Пропускаем символы за пределами видимой области
-            if (y < -symbolHeight || y > cssH) continue;
-
-            const symbol  = column.symbols[i];
-            const opacity = this.calculateOpacity(i, column.symbols.length);
-            const color   = this.getSymbolColor(i, column);
-
-            this.drawSymbol(symbol, column.x, y, color, opacity);
-        }
-    }
-
-    drawSymbol(symbol, x, y, color, opacity) {
-        // Добавляем альфа-канал к цвету для эффекта затухания.
-        // Шрифт уже задан в draw() один раз — здесь не повторяем.
-        this.ctx.fillStyle = color.replace(')', `, ${opacity})`).replace('rgb', 'rgba');
-        this.ctx.fillText(symbol, x, y);
-    }
-
-    calculateOpacity(symbolIndex, totalSymbols) {
-        // Ведущий символ (верхний) — самый яркий
-        if (symbolIndex === 0) return 1;
-        // Хвост постепенно угасает
-        return Math.max(0.2, 1 - (symbolIndex / totalSymbols) * 0.8);
-    }
-
-    getSymbolColor(symbolIndex, column) {
-        if (column.isGlitching) {
-            // Во время глитча — случайный неоновый цвет
-            const glitchColors = ['#FF00FF', '#00FFFF', '#FFFF00'];
-            return glitchColors[Math.floor(Math.random() * glitchColors.length)];
-        }
-        // Ведущий символ — голубой, хвост — розовый
-        return symbolIndex === 0 ? '#00FFFF' : '#FF00FF';
-    }
-
-    update() {
-        const cssH = this.cssHeight || window.innerHeight * 0.3;
-
-        this.columns.forEach(column => {
-            column.y += column.speed;
-
-            column.currentSymbol = (column.currentSymbol + 1) % 4;
-
-            // Случайный глитч — срабатывает с вероятностью 0.2% за кадр
-            if (!column.isGlitching && Math.random() < 0.002) {
-                column.isGlitching = true;
-                column.glitchTimer = 10;
-            }
-
-            if (column.isGlitching) {
-                column.glitchTimer--;
-                if (column.glitchTimer <= 0) {
-                    column.isGlitching = false;
-                    column.symbols = this.generateSymbols(column.symbols.length);
-                }
-            }
-
-            // Колонка ушла за нижний край — перезапускаем сверху
-            if (column.y > cssH + column.symbols.length * 12) {
-                this.resetColumn(column);
+            // Когда REVEAL_THRESHOLD колонок прошли — открываем секцию
+            const ratio = section.columnsInZone / (section.columnsTotal || 1);
+            if (ratio >= this.REVEAL_THRESHOLD) {
+                this.revealSection(section);
             }
         });
     }
 
-    resetColumn(column) {
-        column.y          = -Math.random() * 100;
-        column.speed      = 1 + Math.random() * 2;
-        column.symbols    = this.generateSymbols(8 + Math.floor(Math.random() * 6));
-        column.isGlitching = false;
+    revealSection(section) {
+        if (section.revealed) return;
+        section.revealed = true;
+
+        // Небольшой stagger — каждая следующая секция чуть позже
+        const idx   = this.revealSections.indexOf(section);
+        const delay = idx * 120;
+
+        setTimeout(() => {
+            // CSS .revealed включает transition + opacity:1 + transform:none
+            section.el.classList.add('revealed');
+        }, delay);
     }
 
-    addInteractivity() {
-        const logo = document.getElementById('mainLogo');
-        const nav  = document.querySelector('.nav');
-
-        // Ускорение символов при наведении на логотип
-        if (logo) {
-            logo.addEventListener('mouseenter', () => {
-                this.columns.forEach(col => { col.speed *= 2; });
-            });
-            logo.addEventListener('mouseleave', () => {
-                this.columns.forEach(col => { col.speed /= 2; });
-            });
-        }
-
-        // Случайный глитч при наведении на навигацию
-        if (nav) {
-            nav.addEventListener('mouseenter', () => {
-                this.columns.forEach(col => {
-                    if (Math.random() < 0.3) {
-                        col.isGlitching = true;
-                        col.glitchTimer = 20;
-                    }
-                });
-            });
-        }
+    // Немедленно открыть всё (при пропуске или истечении таймера)
+    revealAll() {
+        this.revealSections.forEach((section, idx) => {
+            if (section.revealed) return;
+            section.revealed = true;
+            const delay = idx * 80;
+            setTimeout(() => section.el.classList.add('revealed'), delay);
+        });
     }
+
+    // ─── РИСОВАНИЕ ────────────────────────────────────────────────────────────
+
+    draw() {
+        const w = this.cssWidth  || window.innerWidth;
+        const h = this.cssHeight || window.innerHeight;
+
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'; // меньше непрозрачность — сайт виден под дождём
+        this.ctx.fillRect(0, 0, w, h);
+
+        this.ctx.font = 'bold 14px "JetBrains Mono", "Courier New", monospace';
+
+        this.columns.forEach(col => this.drawColumn(col));
+    }
+
+    drawColumn(col) {
+        const symH = 14;
+        const h    = this.cssHeight || window.innerHeight;
+
+        col.syms.forEach((sym, i) => {
+            const y = col.y + i * symH;
+            if (y < -symH || y > h) return;
+
+            const opacity = i === 0 ? 1 : Math.max(0.15, 1 - (i / col.syms.length) * 0.85);
+            let color;
+            if (col.isGlitching) {
+                const gc = ['#FF00FF', '#00FFFF', '#FFFF00', '#00FF00'];
+                color = gc[Math.floor(Math.random() * gc.length)];
+            } else {
+                color = i === 0 ? '#00FFFF' : '#FF00FF';
+            }
+
+            this.ctx.globalAlpha = opacity;
+            this.ctx.fillStyle   = color;
+            this.ctx.fillText(sym, col.x, y);
+        });
+        this.ctx.globalAlpha = 1;
+    }
+
+    update() {
+        const h = this.cssHeight || window.innerHeight;
+
+        this.columns.forEach(col => {
+            col.y += col.speed;
+
+            // Глитч
+            if (!col.isGlitching && Math.random() < 0.002) {
+                col.isGlitching = true;
+                col.glitchTimer = 10;
+            }
+            if (col.isGlitching && --col.glitchTimer <= 0) {
+                col.isGlitching = false;
+                col.syms = this.generateSymbols(col.syms.length);
+            }
+
+            // Проверяем достижение нижнего края — триггер reveal
+            const colBottom = col.y + col.syms.length * 14;
+            if (!col.passedBottom && colBottom > h) {
+                this.onColumnReachedBottom(col);
+            }
+
+            // Перезапуск колонки
+            if (col.y > h + col.syms.length * 14) {
+                col.y     = -Math.random() * 100;
+                col.speed = 1.5 + Math.random() * 2.5;
+                col.syms  = this.generateSymbols(8 + Math.floor(Math.random() * 7));
+                // passedBottom НЕ сбрасываем — повторный проход не триггерит reveal
+            }
+        });
+    }
+
+    // ─── ЗАВЕРШЕНИЕ ───────────────────────────────────────────────────────────
+
+    startFadeOut() {
+        if (this.isFinishing) return;
+        this.isFinishing  = true;
+        this.fadeStartTime = performance.now();
+        // Открываем всё что ещё не открылось
+        this.revealAll();
+    }
+
+    finish() {
+        clearTimeout(this.startTimer);
+        this.revealAll();
+        if (this.isFinishing) return;
+        this.startFadeOut();
+    }
+
+    hide() {
+        cancelAnimationFrame(this.animationId);
+        this.overlay.style.display   = 'none';
+        document.body.style.overflow = '';
+        // Страховка: если что-то осталось скрытым — открываем всё
+        document.body.classList.add('loader-done');
+    }
+
+    // ─── ГЛАВНЫЙ ЦИКЛ ─────────────────────────────────────────────────────────
 
     animate(timestamp = 0) {
-        // rAF ставим первым — гарантируем следующий кадр
-        // даже если досрочно выходим из-за паузы или лимита FPS
         this.animationId = requestAnimationFrame((ts) => this.animate(ts));
 
-        // Пауза: вкладка не видна — рисовать не нужно
         if (this.isPaused) return;
 
-        // Ограничение FPS.
-        // elapsed % fpsInterval — убирает накопленное смещение времени,
-        // иначе при 24fps часть кадров будет чуть запаздывать.
         const elapsed = timestamp - this.lastFrameTime;
         if (elapsed < this.fpsInterval) return;
         this.lastFrameTime = timestamp - (elapsed % this.fpsInterval);
 
         this.update();
         this.draw();
-    }
 
-    // Полная остановка анимации (если понадобится вызвать извне)
-    destroy() {
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
+        // Fade out оверлея
+        if (this.isFinishing) {
+            const progress = Math.min((timestamp - this.fadeStartTime) / this.FADE_DURATION, 1);
+            this.overlay.style.opacity = 1 - progress;
+            if (progress >= 1) this.hide();
         }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new MatrixRain();
+    new MatrixLoader();
 });
