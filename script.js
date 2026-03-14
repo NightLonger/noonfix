@@ -1042,26 +1042,44 @@ function initializeMasterModal() {
 }
 
 // Функция открытия окна благодарности
-function openSuccessModal() {
+function openSuccessModal(estimate) {
     const successModal = document.getElementById('successModal');
     if (!successModal) return;
-    
+
     const closeBtn = successModal.querySelector('.success-close-btn');
-    const overlay = successModal.querySelector('.modal-overlay');
-    
+    const overlay  = successModal.querySelector('.modal-overlay');
+
     if (!closeBtn || !overlay) return;
-    
+
+    // Блок оценки — показываем только если передан estimate из сканера
+    const estimateBlock   = document.getElementById('successEstimate');
+    const estimateProblem = document.getElementById('successEstimateProblem');
+    const estimatePrice   = document.getElementById('successEstimatePrice');
+
+    if (estimateBlock) {
+        if (estimate && estimate.label) {
+            estimateProblem.textContent = estimate.label;
+            estimatePrice.textContent   = estimate.price
+                ? 'от ' + estimate.price.toLocaleString('ru-RU') + ' ₽'
+                : 'уточняется после диагностики';
+            estimateBlock.style.display = 'block';
+        } else {
+            // Вызов через кнопку мастера — оценку не показываем
+            estimateBlock.style.display = 'none';
+        }
+    }
+
     // Сбрасываем и запускаем таймер
-    startCountdown(15 * 60); // 15 минут в секундах
-    
+    startCountdown(15 * 60);
+
     // Показываем окно
     successModal.classList.add('active');
     document.body.style.overflow = 'hidden';
-    
+
     // Обработчики закрытия
     closeBtn.addEventListener('click', closeSuccessModal);
     overlay.addEventListener('click', closeSuccessModal);
-    
+
     // Закрытие по ESC
     document.addEventListener('keydown', handleSuccessEscape);
 }
