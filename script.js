@@ -400,7 +400,86 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', utils.debounce(optimizeForMobile, 250));
     
     console.log('🚀 Все модули инициализированы');
+
+    // ── Отслеживание скролла до ключевых секций ──
+    const sectionGoals = {
+        'services': 'section_services',
+        'prices':   'section_prices',
+        'about':    'section_about',
+        'stages':   'section_stages',
+    };
+    const seenSections = new Set();
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const id = entry.target.id;
+            if (seenSections.has(id)) return;
+            seenSections.add(id);
+            if (window.YandexMetrika && sectionGoals[id]) {
+                window.YandexMetrika.reachGoal(sectionGoals[id], { section: id });
+            }
+        });
+    }, { threshold: 0.3 });
+
+    Object.keys(sectionGoals).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) sectionObserver.observe(el);
+    });
+
+    // ── Глубокий скролл 75% страницы ──
+    let deepScrollFired = false;
+    window.addEventListener('scroll', () => {
+        if (deepScrollFired) return;
+        const pct = (window.scrollY + window.innerHeight) / document.body.scrollHeight;
+        if (pct >= 0.75) {
+            deepScrollFired = true;
+            if (window.YandexMetrika) {
+                window.YandexMetrika.reachGoal('scroll_deep', { depth: '75%' });
+            }
+        }
+    }, { passive: true });
+
+    // ── FAQ аккордеон ──
+    initializeFAQ();
 });
+
+function initializeFAQ() {
+    const items = document.querySelectorAll('.faq-item');
+    if (!items.length) return;
+
+    items.forEach(item => {
+        const btn = item.querySelector('.faq-question');
+        if (!btn) return;
+
+        btn.addEventListener('click', () => {
+            const isOpen = item.classList.contains('open');
+
+            // Закрываем все остальные
+            items.forEach(other => {
+                other.classList.remove('open');
+                const otherBtn = other.querySelector('.faq-question');
+                if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+            });
+
+            // Переключаем текущий
+            if (!isOpen) {
+                item.classList.add('open');
+                btn.setAttribute('aria-expanded', 'true');
+
+                // Цель метрики — какой вопрос открыли
+                if (window.YandexMetrika) {
+                    const question = btn.querySelector('[itemprop="name"]');
+                    window.YandexMetrika.reachGoal('faq_open', {
+                        question: question ? question.textContent.trim() : ''
+                    });
+                }
+            }
+        });
+    });
+
+    console.log('✅ FAQ initialized');
+}
 
 // Инициализация логотипа
 function initializeLogo() {
@@ -490,6 +569,22 @@ function initializeNavigation() {
 
 // Инициализация обратных вызовов
 function initializeCallbacks() {
+    // Клик по номеру телефона — главная цель
+    const phoneLinks = document.querySelectorAll('a[href^="tel:"]');
+    phoneLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.YandexMetrika) {
+                window.YandexMetrika.reachGoal('phone_call', {
+                    phone: link.href.replace('tel:', ''),
+                    location: link.closest('header') ? 'header'
+                            : link.closest('.contacts-section') ? 'contacts'
+                            : link.closest('.contact-menu') ? 'floating'
+                            : 'other'
+                });
+            }
+        });
+    });
+
     // Кнопка в шапке
     const callbackBtn = domCache.get('.callback-btn');
     if (callbackBtn) {
