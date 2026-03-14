@@ -2946,6 +2946,119 @@ main {
 }
 
 
+
+
+/* ═══════════════════════════════════════════════════
+   FAQ СЕКЦИЯ
+═══════════════════════════════════════════════════ */
+.faq-section {
+    padding: 60px 0;
+}
+
+.faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 860px;
+    margin: 40px auto 0;
+}
+
+.faq-item {
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    transition: border-color 0.3s ease;
+}
+
+.faq-item:hover {
+    border-color: rgba(0, 255, 255, 0.4);
+}
+
+.faq-item.open {
+    border-color: rgba(0, 255, 255, 0.5);
+    background: rgba(0, 255, 255, 0.03);
+}
+
+.faq-question {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 0.95rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--text-white);
+    text-align: left;
+    transition: color 0.2s ease;
+}
+
+.faq-question:hover {
+    color: var(--neon-cyan);
+}
+
+.faq-item.open .faq-question {
+    color: var(--neon-cyan);
+}
+
+.faq-arrow {
+    font-size: 0.7rem;
+    color: var(--neon-pink);
+    transition: transform 0.3s ease, color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.faq-item.open .faq-arrow {
+    transform: rotate(90deg);
+    color: var(--neon-cyan);
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.35s ease;
+    padding: 0 24px;
+}
+
+.faq-item.open .faq-answer {
+    max-height: 400px;
+    padding: 0 24px 18px;
+}
+
+.faq-answer [itemprop="text"] {
+    font-size: 0.88rem;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.3px;
+    border-left: 2px solid rgba(0, 255, 255, 0.3);
+    padding-left: 16px;
+}
+
+@media (max-width: 768px) {
+    .faq-question {
+        font-size: 0.85rem;
+        padding: 14px 16px;
+    }
+
+    .faq-answer {
+        padding: 0 16px;
+    }
+
+    .faq-item.open .faq-answer {
+        padding: 0 16px 14px;
+    }
+}
+
+/* ============================================================
+   REVEAL — секции скрыты до прохождения matrix rain
+   JS в matrix-rain.js выставляет opacity:1 когда колонки дошли
+   ============================================================ */
+/* Секции скрыты сразу через CSS — не нужно ждать JS.
+   JS добавляет класс .revealed когда колонки дождя прошли зону. */
 header.header,
 section.work-stages,
 section.services,
