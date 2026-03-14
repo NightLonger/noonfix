@@ -2790,6 +2790,48 @@ main {
     }
 }
 
+/* ── Блок оценки внутри successModal ── */
+.success-estimate {
+    margin: 16px 0;
+    padding: 14px 20px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-left: 3px solid var(--neon-cyan);
+    background: rgba(0, 255, 255, 0.05);
+    text-align: left;
+}
+
+.success-estimate-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+.success-estimate-problem {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-white);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.success-estimate-price {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    letter-spacing: 2px;
+}
+
+.success-estimate-note {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 1px;
+    margin-top: 6px;
+}
+
 .success-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 20px;
