@@ -1,20 +1,3 @@
-/*
-=======================================================
-  scanner.js  —  Логика сканера неисправности
-=======================================================
-  Подключить в index.html ПЕРЕД </body>, ПОСЛЕ script.js:
-  <script src="scanner.js"></script>
-
-  ЧТО УДАЛИТЬ ИЗ script.js:
-  1. Функции (строки ~558–615):
-       function initializePricing() { ... }
-       function highlightServiceCard(service) { ... }
-       function getCardIndex(service) { ... }
-  2. Вызов в DOMContentLoaded (строка ~392):
-       initializePricing();
-=======================================================
-*/
-
 (function () {
     'use strict';
 
@@ -137,26 +120,9 @@
        БЛОК ОЦЕНКИ
     ═══════════════════════════════════════════════ */
     function updateEstimate() {
-        var block = document.getElementById('scEstimate');
-        if (!block) return;
-
-        if (!state.symptoms.length) {
-            block.classList.remove('visible');
-            return;
-        }
-
-        var result = getEstimate(state.symptoms, state.size);
-
-        document.getElementById('estimateProblem').textContent = result.label;
-
-        var priceEl = document.getElementById('estimatePrice');
-        if (result.price) {
-            priceEl.textContent = 'от ' + result.price.toLocaleString('ru-RU') + ' ₽';
-        } else {
-            priceEl.textContent = 'уточняется после диагностики';
-        }
-
-        block.classList.add('visible');
+        // Оценка не показывается на странице до отправки —
+        // она появится в successModal после нажатия кнопки.
+        // Функция оставлена для совместимости (вызывается при выборе симптомов).
     }
 
     /* ═══════════════════════════════════════════════
@@ -483,8 +449,7 @@
         if (phoneEl) { phoneEl.value = ''; phoneEl.classList.remove('valid','invalid'); }
         if (agreeEl) agreeEl.checked = false;
 
-        var estimate = document.getElementById('scEstimate');
-        if (estimate) estimate.classList.remove('visible');
+        // scEstimate скрыт постоянно — оценка показывается в successModal
 
         updateSubmit();
     }
@@ -503,15 +468,18 @@
             btn.disabled = true;
             if (textEl) textEl.textContent = 'ОТПРАВЛЯЕМ';
 
+            // Сохраняем оценку ДО resetForm (он сбросит state)
+            var currentEstimate = getEstimate(state.symptoms, state.size);
+
             var ok = await sendToBot();
 
             btn.classList.remove('loading');
 
             if (ok) {
                 resetForm();
-                // Используем существующий successModal из script.js
+                // Передаём оценку в модалку — она покажет её внутри
                 if (typeof openSuccessModal === 'function') {
-                    openSuccessModal();
+                    openSuccessModal(currentEstimate);
                 } else {
                     alert('✅ Заявка отправлена! Мастер перезвонит в течение 15 минут.');
                 }
