@@ -812,118 +812,71 @@ function initializeFloatingContact() {
 
 // Инициализация этапов работ
 function initializeWorkStages() {
-    // ── Данные этапов ──
+    const stages       = domCache.getAll('.stage');
+    const stagesTrack  = document.querySelector('.stages-track');
+    const stageDesc    = document.getElementById('stageDescription');
+    const noiseCanvas  = document.getElementById('stageNoise');
+    const descIcon     = document.getElementById('descIcon');
+    const descNum      = document.getElementById('descNum');
+    const descTitle    = document.getElementById('descTitle');
+    const descText     = document.getElementById('descText');
+
+    if (!stages.length) return;
+
     const STAGE_DATA = {
         1: { icon:'📞', num:'01', title:'Оформление заявки',  text:'Удобным для Вас способом — звонок, мессенджер или заявка на сайте. Ежедневно с 10:00 до 21:00.' },
         2: { icon:'🚗', num:'02', title:'Выезд специалиста',  text:'Мастер приезжает в день обращения, обычно в течение 1–3 часов по всей Перми.' },
         3: { icon:'🔍', num:'03', title:'Диагностика',         text:'Выявляем неисправность и согласовываем стоимость. Диагностика бесплатна при ремонте.' },
         4: { icon:'🔧', num:'04', title:'Ремонт',              text:'Ремонт и проверка качества прямо у вас дома. Большинство неисправностей — 1–4 часа.' },
-        5: { icon:'✅', num:'05', title:'Гарантия и сдача',    text:'Проверяем работу вместе с вами. Выдаём гарантию на все виды работ и замену деталей.' },
+        5: { icon:'✅', num:'05', title:'Гарантия и сдача',    text:'Проверяем работу вместе с вами. Гарантия на все виды работ и замену деталей.' },
     };
+
     const GCHARS = 'TVFIX01NOONGLITCH#@!%&*><';
+    let currentStage = 1, autoSwitchInterval, isAnimating = false;
+    let noiseCtx = noiseCanvas ? noiseCanvas.getContext('2d') : null;
 
-    // ── Десктоп элементы ──
-    const dStages    = domCache.getAll('.stage');
-    const dLineFill  = document.getElementById('stagesLineFill');
-    const dTrack     = document.getElementById('stagesTrack');
-    const dDesc      = document.getElementById('stageDescription');
-    const dNoise     = document.getElementById('stageNoise');
-    const dIcon      = document.getElementById('descIcon');
-    const dNum       = document.getElementById('descNum');
-    const dTitle     = document.getElementById('descTitle');
-    const dText      = document.getElementById('descText');
-
-    // ── Мобильные элементы ──
-    const mSteps     = domCache.getAll('.mob-step');
-    const mLineFill  = document.getElementById('mobLineFill');
-    const mInfo      = document.getElementById('mobInfo');
-    const mNoise     = document.getElementById('mobNoise');
-    const mNum       = document.getElementById('mobNum');
-    const mTitle     = document.getElementById('mobTitle');
-    const mDesc      = document.getElementById('mobDesc');
-
-    if (!dStages.length) return;
-
-    let currentStage = 1;
-    let autoSwitchInterval;
-    let isAnimating = false;
-
-    // ── Горизонтальный сдвиг узлов (десктоп) ──
+    // Горизонтальный сдвиг узлов
     function applyShifts(activeIdx) {
-        dStages.forEach((s, i) => {
+        stages.forEach((s, i) => {
             const d = i - activeIdx;
             const shift = d === 0 ? 0 : (d > 0 ? 1 : -1) * Math.min(Math.abs(d), 2) * 7;
             s.style.setProperty('--stage-shift', shift + 'px');
         });
     }
 
-    // ── Обновление линии десктоп (по реальным координатам) ──
-    function updateDesktopLine(n) {
-        if (!dLineFill || !dTrack || !dStages.length) return;
-        const trackRect = dTrack.getBoundingClientRect();
-        const firstNode = dStages[0].querySelector('.stage-icon');
-        const activeNode= dStages[n-1].querySelector('.stage-icon');
-        if (!firstNode || !activeNode) return;
-        const fR = firstNode.getBoundingClientRect();
-        const aR = activeNode.getBoundingClientRect();
-        const lineStart = fR.left + fR.width/2 - trackRect.left;
-        const lineTo    = aR.left + aR.width/2  - trackRect.left;
-        dLineFill.style.left  = lineStart + 'px';
-        dLineFill.style.width = Math.max(0, lineTo - lineStart) + 'px';
-    }
 
-    // ── Обновление линии мобильная ──
-    function updateMobileLine(n) {
-        if (!mLineFill || !mSteps.length) return;
-        const wrap  = document.getElementById('mobSteps');
-        if (!wrap) return;
-        const wRect = wrap.getBoundingClientRect();
-        const firstNode  = mSteps[0].querySelector('.mob-node');
-        const activeNode = mSteps[n-1].querySelector('.mob-node');
-        if (!firstNode || !activeNode) return;
-        const fR = firstNode.getBoundingClientRect();
-        const aR = activeNode.getBoundingClientRect();
-        const lineStart = fR.top + fR.height/2 - wRect.top;
-        const lineTo    = aR.top + aR.height/2  - wRect.top;
-        mLineFill.style.top    = lineStart + 'px';
-        mLineFill.style.height = Math.max(0, lineTo - lineStart) + 'px';
-    }
 
-    // ── Статические помехи ──
-    function playNoise(canvas, parent, duration) {
-        if (!canvas || !parent) return;
-        const w = parent.offsetWidth;
-        const h = parent.offsetHeight;
-        if (!w || !h) return; // элемент скрыт (display:none) — размеры нулевые
-        const ctx = canvas.getContext('2d');
-        canvas.width  = w;
-        canvas.height = h;
-        canvas.style.opacity = '1';
+    // Статические помехи
+    function playNoise(duration) {
+        if (!noiseCtx || !stageDesc) return;
+        noiseCanvas.width  = stageDesc.offsetWidth;
+        noiseCanvas.height = stageDesc.offsetHeight;
+        noiseCanvas.style.opacity = '1';
         let start = null;
-        (function frame(ts) {
+        function frame(ts) {
             if (!start) start = ts;
             const p = (ts - start) / duration;
             const intensity = p < 0.3 ? (p/0.3)*0.15 : (1-p)*0.15;
-            const id = ctx.createImageData(canvas.width, canvas.height);
+            const id = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
             const d  = id.data;
             for (let i = 0; i < d.length; i += 4) {
                 if (Math.random() < intensity) {
-                    const c = Math.random() < 0.35, pk = Math.random() < 0.25;
-                    d[i]   = pk ? 220 : c ? 0 : Math.random()*255;
+                    const cyan = Math.random() < 0.35, pink = Math.random() < 0.25;
+                    d[i]   = pink ? 220 : cyan ? 0 : Math.random()*255;
                     d[i+1] = 0;
-                    d[i+2] = (c||pk) ? 220 : Math.random()*255;
-                    d[i+3] = Math.random() * 160;
+                    d[i+2] = (cyan||pink) ? 220 : Math.random()*255;
+                    d[i+3] = Math.random() * 180;
                 }
             }
-            ctx.putImageData(id, 0, 0);
+            noiseCtx.putImageData(id, 0, 0);
             if (p < 1) requestAnimationFrame(frame);
-            else { ctx.clearRect(0,0,canvas.width,canvas.height); canvas.style.opacity='0'; }
-        })(0);
+            else { noiseCtx.clearRect(0,0,noiseCanvas.width,noiseCanvas.height); noiseCanvas.style.opacity='0'; }
+        }
+        requestAnimationFrame(frame);
     }
 
-    // ── Глитч символов ──
+    // Глитч символов
     function glitchText(el, finalText, duration) {
-        if (!el) return;
         const steps = 7, iv = duration / steps;
         let step = 0;
         const t = setInterval(() => {
@@ -941,53 +894,54 @@ function initializeWorkStages() {
         }, iv);
     }
 
-    // ── Главное переключение ──
     function switchStage(stageNumber, manual = false) {
         if (isAnimating) return;
         if (stageNumber < 1) stageNumber = 5;
         if (stageNumber > 5) stageNumber = 1;
-        currentStage = stageNumber;
-        isAnimating  = true;
 
+        const prevN   = currentStage;
+        const prevIdx = prevN - 1;
+        const nextIdx = stageNumber - 1;
+        currentStage  = stageNumber;
+        isAnimating   = true;
+
+        // Прогресс через CSS-переменную на .stages-track
+        if (stagesTrack) {
+            const pct = ((stageNumber-1)/4*100);
+            // Ширина заполненной части = от левого края до центра активного узла
+            // Вычисляем как процент от общей ширины дорожки
+            const trackW = stagesTrack.offsetWidth;
+            const leftOffset = parseFloat(getComputedStyle(stagesTrack, '::before').left) || (trackW * 0.1 + 6);
+            const rightOffset = trackW * 0.1 + 6;
+            const lineW = trackW - leftOffset - rightOffset;
+            const fillPct = pct === 0 ? '0%' : (pct / 100 * lineW) + 'px';
+            stagesTrack.style.setProperty('--progress-width', pct === 0 ? '0%' : pct + '%');
+        }
+
+        // Активный класс
+        stages.forEach(s => s.classList.remove('active'));
+        stages[nextIdx].classList.add('active');
+
+        // Сдвиг узлов
+        applyShifts(nextIdx);
+
+        // Помехи + глитч
         const data = STAGE_DATA[stageNumber];
-
-        // Десктоп: активный класс + сдвиг + линия
-        dStages.forEach(s => s.classList.remove('active'));
-        dStages[stageNumber-1].classList.add('active');
-        applyShifts(stageNumber-1);
-        setTimeout(() => updateDesktopLine(stageNumber), 50);
-
-        // Десктоп: глитч + помехи
-        if (dDesc) dDesc.classList.add('glitching');
-        playNoise(dNoise, dDesc, 360);
-        if (dIcon)  dIcon.textContent  = data.icon;
-        if (dNum)   dNum.textContent   = `Этап ${data.num} / 05`;
-        if (dTitle) glitchText(dTitle, data.title, 300);
-        if (dText)  setTimeout(() => {
-            dText.style.opacity = '0';
-            dText.textContent   = data.text;
-            requestAnimationFrame(() => { dText.style.opacity = '1'; });
-        }, 160);
-
-        // Мобильный: активный класс + линия
-        mSteps.forEach(s => s.classList.remove('active'));
-        if (mSteps[stageNumber-1]) mSteps[stageNumber-1].classList.add('active');
-        setTimeout(() => updateMobileLine(stageNumber), 50);
-
-        // Мобильный: глитч + помехи
-        if (mInfo) mInfo.classList.add('mob-glitch');
-        playNoise(mNoise, mInfo, 360);
-        if (mNum)   mNum.textContent   = `Этап ${data.num} / 05`;
-        if (mTitle) glitchText(mTitle, data.title, 300);
-        if (mDesc)  setTimeout(() => {
-            mDesc.style.opacity = '0';
-            mDesc.textContent   = data.text;
-            requestAnimationFrame(() => { mDesc.style.opacity = '1'; });
-        }, 160);
+        playNoise(380);
+        if (stageDesc) stageDesc.classList.add('glitching');
+        if (descIcon) descIcon.textContent = data.icon;
+        if (descNum)  descNum.textContent  = `Этап ${data.num} / 05`;
+        if (descTitle) glitchText(descTitle, data.title, 320);
+        if (descText) {
+            setTimeout(() => {
+                descText.style.opacity = '0';
+                descText.textContent   = data.text;
+                requestAnimationFrame(() => { descText.style.opacity = '1'; });
+            }, 180);
+        }
 
         setTimeout(() => {
-            if (dDesc) dDesc.classList.remove('glitching');
-            if (mInfo) mInfo.classList.remove('mob-glitch');
+            if (stageDesc) stageDesc.classList.remove('glitching');
             isAnimating = false;
         }, 400);
 
@@ -1005,8 +959,7 @@ function initializeWorkStages() {
         if (autoSwitchInterval) clearInterval(autoSwitchInterval);
     }
 
-    // Клики по карточкам
-    dStages.forEach(stage => {
+    stages.forEach(stage => {
         stage.addEventListener('click', () => {
             const n = parseInt(stage.getAttribute('data-stage'));
             switchStage(n, true);
@@ -1019,24 +972,10 @@ function initializeWorkStages() {
         });
     });
 
-    // Клики по мобильным шагам
-    mSteps.forEach(step => {
-        step.addEventListener('click', () => {
-            const n = parseInt(step.getAttribute('data-stage'));
-            switchStage(n, true);
-        });
-    });
 
-    // Инициализация линий после рендера
+
+    // Инициализация
     applyShifts(0);
-    setTimeout(() => { updateDesktopLine(1); updateMobileLine(1); }, 150);
-
-    // Пересчёт при ресайзе
-    window.addEventListener('resize', utils.debounce(() => {
-        updateDesktopLine(currentStage);
-        updateMobileLine(currentStage);
-    }, 200));
-
     startAutoSwitch();
     window.addEventListener('beforeunload', stopAutoSwitch);
 }
