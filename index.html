@@ -334,44 +334,53 @@
 <section class="work-stages" id="stages">
     <div class="container">
         <h2 class="section-title neon-text">ЭТАПЫ РАБОТ</h2>
-        
+
         <div class="stages-container">
             <!-- Прогресс-бар -->
             <div class="progress-container">
                 <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                    <div class="progress-glow"></div>
+                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-spark" id="progressSpark"></div>
                 </div>
             </div>
 
-            <!-- Этапы -->
+            <!-- Узлы этапов -->
             <div class="stages-track">
                 <div class="stage active" data-stage="1">
-                    <div class="stage-icon">📞</div>
-                    <div class="stage-title">Оформление заявки</div>
+                    <div class="stage-icon" data-num="1">📞</div>
+                    <div class="stage-title">Оформление<br>заявки</div>
                 </div>
                 <div class="stage" data-stage="2">
-                    <div class="stage-icon">🚗</div>
-                    <div class="stage-title">Выезд специалиста</div>
+                    <div class="stage-icon" data-num="2">🚗</div>
+                    <div class="stage-title">Выезд<br>специалиста</div>
                 </div>
                 <div class="stage" data-stage="3">
-                    <div class="stage-icon">🔍</div>
+                    <div class="stage-icon" data-num="3">🔍</div>
                     <div class="stage-title">Диагностика</div>
                 </div>
                 <div class="stage" data-stage="4">
-                    <div class="stage-icon">🔧</div>
+                    <div class="stage-icon" data-num="4">🔧</div>
                     <div class="stage-title">Ремонт</div>
                 </div>
                 <div class="stage" data-stage="5">
-                    <div class="stage-icon">📦</div>
-                    <div class="stage-title">Доставка ТВ</div>
+                    <div class="stage-icon" data-num="5">✅</div>
+                    <div class="stage-title">Гарантия<br>и сдача</div>
                 </div>
             </div>
 
-            <!-- Описание текущего этапа -->
-            <div class="stage-description">
-                <div class="description-text">Удобным для Вас способом</div>
+            <!-- Описание -->
+            <div class="stage-description" id="stageDescription">
+                <canvas class="noise-canvas" id="stageNoise"></canvas>
+                <div class="description-icon" id="descIcon">📞</div>
+                <div class="description-body">
+                    <div class="description-stage-num" id="descNum">Этап 01 / 05</div>
+                    <div class="description-title" id="descTitle" data-text="Оформление заявки">Оформление заявки</div>
+                    <div class="description-text" id="descText">Удобным для Вас способом — звонок, мессенджер или заявка на сайте. Ежедневно с 10:00 до 21:00.</div>
+                </div>
             </div>
+
+            <!-- Кнопки -->
+
         </div>
     </div>
 </section>   
@@ -656,22 +665,12 @@
                 <span class="contact-icon">✈️</span>
                 <span class="contact-label">Telegram</span>
             </a>
-            <a href="https://wa.me/+79194732090" class="contact-button whatsapp-button">
-                <span class="contact-icon">📱</span>
-                <span class="contact-label">Whatsapp</span>
-            </a>
+            <button class="contact-button callback-contact-button" onclick="openMasterModal()">
+                <span class="contact-icon">🔧</span>
+                <span class="contact-label">Вызвать мастера</span>
+            </button>
         </div>
-        <div class="master-call-container">
-    <button class="master-call-button">
-        <div class="master-call-content">
-            <span class="master-call-text">ВЫЗВАТЬ МАСТЕРА</span>
-            <span class="master-call-subtext">
-                <span class="play-icon">▶</span>
-                БЕСПЛАТНЫЙ ВЫЕЗД
-            </span>
-        </div>
-    </button>
-</div>
+
     </div>
 </section>
 
@@ -957,10 +956,7 @@
                 <span class="menu-icon">✈️</span>
                 <span class="menu-text">Telegram</span>
             </a>
-            <a href="https://wa.me/+79194732090" class="contact-menu-item whatsapp-item">
-                <span class="menu-icon">📱</span>
-                <span class="menu-text">WhatsApp</span>
-            </a>
+
         </div>
     </div>
 

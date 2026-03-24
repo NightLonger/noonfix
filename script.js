@@ -812,84 +812,171 @@ function initializeFloatingContact() {
 
 // Инициализация этапов работ
 function initializeWorkStages() {
-    const stages = domCache.getAll('.stage');
-    const progressFill = domCache.get('.progress-fill');
-    const descriptionText = domCache.get('.description-text');
-    
-    if (!stages.length || !progressFill || !descriptionText) return;
+    const stages       = domCache.getAll('.stage');
+    const stagesTrack  = document.querySelector('.stages-track');
+    const stageDesc    = document.getElementById('stageDescription');
+    const noiseCanvas  = document.getElementById('stageNoise');
+    const descIcon     = document.getElementById('descIcon');
+    const descNum      = document.getElementById('descNum');
+    const descTitle    = document.getElementById('descTitle');
+    const descText     = document.getElementById('descText');
 
-    const stageData = {
-        1: "Удобным для Вас способом",
-        2: "В удобное для Вас время", 
-        3: "Выявление неисправности и согласование стоимости",
-        4: "Ремонт и проверка качества проведенных работ",
-        5: "В удобную для Вас дату и время с Гарантией до 1 года"
+    if (!stages.length) return;
+
+    const STAGE_DATA = {
+        1: { icon:'📞', num:'01', title:'Оформление заявки',  text:'Удобным для Вас способом — звонок, мессенджер или заявка на сайте. Ежедневно с 10:00 до 21:00.' },
+        2: { icon:'🚗', num:'02', title:'Выезд специалиста',  text:'Мастер приезжает в день обращения, обычно в течение 1–3 часов по всей Перми.' },
+        3: { icon:'🔍', num:'03', title:'Диагностика',         text:'Выявляем неисправность и согласовываем стоимость. Диагностика бесплатна при ремонте.' },
+        4: { icon:'🔧', num:'04', title:'Ремонт',              text:'Ремонт и проверка качества прямо у вас дома. Большинство неисправностей — 1–4 часа.' },
+        5: { icon:'✅', num:'05', title:'Гарантия и сдача',    text:'Проверяем работу вместе с вами. Гарантия на все виды работ и замену деталей.' },
     };
-    
-    let currentStage = 1;
-    let autoSwitchInterval;
 
-    function switchStage(stageNumber) {
-        // Обновляем активный этап
-        stages.forEach(stage => stage.classList.remove('active'));
-        const targetStage = domCache.get(`[data-stage="${stageNumber}"]`);
-        if (targetStage) targetStage.classList.add('active');
-        
-        // Обновляем прогресс-бар
-        const progressPercent = ((stageNumber - 1) / 4) * 100;
-        progressFill.style.width = `${progressPercent}%`;
-        
-        // Обновляем описание с анимацией
-        if (stageData[stageNumber]) {
-            utils.animateElement(descriptionText, 'text-fade', 500);
-            descriptionText.textContent = stageData[stageNumber];
-        }
-        
-        currentStage = stageNumber;
-        trackUserInteraction('stage_changed', { stage: stageNumber });
+    const GCHARS = 'TVFIX01NOONGLITCH#@!%&*><';
+    let currentStage = 1, autoSwitchInterval, isAnimating = false;
+    let noiseCtx = noiseCanvas ? noiseCanvas.getContext('2d') : null;
+
+    // Горизонтальный сдвиг узлов
+    function applyShifts(activeIdx) {
+        stages.forEach((s, i) => {
+            const d = i - activeIdx;
+            const shift = d === 0 ? 0 : (d > 0 ? 1 : -1) * Math.min(Math.abs(d), 2) * 7;
+            s.style.setProperty('--stage-shift', shift + 'px');
+        });
     }
-    
+
+
+
+    // Статические помехи
+    function playNoise(duration) {
+        if (!noiseCtx || !stageDesc) return;
+        noiseCanvas.width  = stageDesc.offsetWidth;
+        noiseCanvas.height = stageDesc.offsetHeight;
+        noiseCanvas.style.opacity = '1';
+        let start = null;
+        function frame(ts) {
+            if (!start) start = ts;
+            const p = (ts - start) / duration;
+            const intensity = p < 0.3 ? (p/0.3)*0.15 : (1-p)*0.15;
+            const id = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
+            const d  = id.data;
+            for (let i = 0; i < d.length; i += 4) {
+                if (Math.random() < intensity) {
+                    const cyan = Math.random() < 0.35, pink = Math.random() < 0.25;
+                    d[i]   = pink ? 220 : cyan ? 0 : Math.random()*255;
+                    d[i+1] = 0;
+                    d[i+2] = (cyan||pink) ? 220 : Math.random()*255;
+                    d[i+3] = Math.random() * 180;
+                }
+            }
+            noiseCtx.putImageData(id, 0, 0);
+            if (p < 1) requestAnimationFrame(frame);
+            else { noiseCtx.clearRect(0,0,noiseCanvas.width,noiseCanvas.height); noiseCanvas.style.opacity='0'; }
+        }
+        requestAnimationFrame(frame);
+    }
+
+    // Глитч символов
+    function glitchText(el, finalText, duration) {
+        const steps = 7, iv = duration / steps;
+        let step = 0;
+        const t = setInterval(() => {
+            if (step >= steps) {
+                el.textContent = finalText;
+                el.setAttribute('data-text', finalText);
+                clearInterval(t);
+                return;
+            }
+            const p = step / steps;
+            el.textContent = [...finalText].map(ch =>
+                ch === ' ' ? ' ' : Math.random() < p ? ch : GCHARS[Math.floor(Math.random()*GCHARS.length)]
+            ).join('');
+            step++;
+        }, iv);
+    }
+
+    function switchStage(stageNumber, manual = false) {
+        if (isAnimating) return;
+        if (stageNumber < 1) stageNumber = 5;
+        if (stageNumber > 5) stageNumber = 1;
+
+        const prevN   = currentStage;
+        const prevIdx = prevN - 1;
+        const nextIdx = stageNumber - 1;
+        currentStage  = stageNumber;
+        isAnimating   = true;
+
+        // Прогресс через CSS-переменную на .stages-track
+        if (stagesTrack) {
+            const pct = ((stageNumber-1)/4*100);
+            // Ширина заполненной части = от левого края до центра активного узла
+            // Вычисляем как процент от общей ширины дорожки
+            const trackW = stagesTrack.offsetWidth;
+            const leftOffset = parseFloat(getComputedStyle(stagesTrack, '::before').left) || (trackW * 0.1 + 6);
+            const rightOffset = trackW * 0.1 + 6;
+            const lineW = trackW - leftOffset - rightOffset;
+            const fillPct = pct === 0 ? '0%' : (pct / 100 * lineW) + 'px';
+            stagesTrack.style.setProperty('--progress-width', pct === 0 ? '0%' : pct + '%');
+        }
+
+        // Активный класс
+        stages.forEach(s => s.classList.remove('active'));
+        stages[nextIdx].classList.add('active');
+
+        // Сдвиг узлов
+        applyShifts(nextIdx);
+
+        // Помехи + глитч
+        const data = STAGE_DATA[stageNumber];
+        playNoise(380);
+        if (stageDesc) stageDesc.classList.add('glitching');
+        if (descIcon) descIcon.textContent = data.icon;
+        if (descNum)  descNum.textContent  = `Этап ${data.num} / 05`;
+        if (descTitle) glitchText(descTitle, data.title, 320);
+        if (descText) {
+            setTimeout(() => {
+                descText.style.opacity = '0';
+                descText.textContent   = data.text;
+                requestAnimationFrame(() => { descText.style.opacity = '1'; });
+            }, 180);
+        }
+
+        setTimeout(() => {
+            if (stageDesc) stageDesc.classList.remove('glitching');
+            isAnimating = false;
+        }, 400);
+
+        trackUserInteraction('stage_changed', { stage: stageNumber });
+        if (manual) { stopAutoSwitch(); startAutoSwitch(); }
+    }
+
     function startAutoSwitch() {
         autoSwitchInterval = setInterval(() => {
-            const nextStage = currentStage === 5 ? 1 : currentStage + 1;
-            switchStage(nextStage);
+            switchStage(currentStage === 5 ? 1 : currentStage + 1);
         }, CONFIG.stages.autoSwitchInterval);
     }
-    
+
     function stopAutoSwitch() {
-        if (autoSwitchInterval) {
-            clearInterval(autoSwitchInterval);
-        }
+        if (autoSwitchInterval) clearInterval(autoSwitchInterval);
     }
-    
-    // Обработчики для этапов
+
     stages.forEach(stage => {
         stage.addEventListener('click', () => {
-            const stageNumber = parseInt(stage.getAttribute('data-stage'));
-            stopAutoSwitch();
-            switchStage(stageNumber);
-            startAutoSwitch();
-            
-            trackUserInteraction('stage_manual_click', { stage: stageNumber });
+            const n = parseInt(stage.getAttribute('data-stage'));
+            switchStage(n, true);
+            trackUserInteraction('stage_manual_click', { stage: n });
         });
-        
-        // Добавляем доступность
         stage.setAttribute('role', 'button');
         stage.setAttribute('tabindex', '0');
-        
-        // Обработка клавиатуры
         stage.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                stage.click();
-            }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stage.click(); }
         });
     });
-    
-    // Запускаем автоматическое переключение
+
+
+
+    // Инициализация
+    applyShifts(0);
     startAutoSwitch();
-    
-    // Очистка при выгрузке страницы
     window.addEventListener('beforeunload', stopAutoSwitch);
 }
 
